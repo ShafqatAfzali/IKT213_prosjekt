@@ -10,11 +10,11 @@ def rotate90DegreeCounterClockwise(image):
     return rotated
 
 def flipVertical(image):
-    flipped = cv2.flip(image, 1)
+    flipped = cv2.flip(image, 0)
     return flipped
 
 def flipHorizontal(image):
-    flipped = cv2.flip(image, 0)
+    flipped = cv2.flip(image, 1)
     return flipped
 
 if __name__ == "__main__":
