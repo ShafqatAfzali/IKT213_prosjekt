@@ -4,7 +4,6 @@ import numpy as np
 from PIL import Image, ImageTk
 import cv2
 import Image as imgFunc
-from Selection import Selection
 
 root = Tk()
 root.title("Title")
@@ -25,7 +24,9 @@ class ImageEditingFrame(Frame):
         self.cv_image_display = self.cv_image_full.copy()
         self.tk_background_image = cv2_to_tk(self.cv_image_display)
 
-        self.selection = Selection()
+        self.selection_points = []
+        self.selection_shape_ids = []
+        self.selection_mask = None
 
         self.canvas = Canvas(self, bg="black")
         self.canvas.pack(fill="both", expand=True)
@@ -36,18 +37,22 @@ class ImageEditingFrame(Frame):
         self.make_menu()
         master.config(menu=self.menu_bar)
 
+    def show_maks(self):
+        cv2.imshow("mask", self.selection_mask)
+
     def make_menu(self):
         menu_image = Menu(self.menu_bar, tearoff=0)
+
 
         menu_select = Menu(menu_image, tearoff=0)
         menu_select.add_command(label="Rectangle",
                                      command=lambda: self.canvas.bind("<Button-1>", self.start_rectangle))
         menu_select.add_command(label="Free-form",
-                                     command=lambda: print("Free-form"))
+                                     command=lambda: self.canvas.bind("<Button-1>", self.start_lasso))
         menu_select.add_command(label="Polygon",
                                 command=lambda:  self.start_polygon())
         menu_select.add_command(label="Crop",
-                                command=lambda: self.crop())
+                                command=lambda: self.start_crop())
         menu_select.add_command(label="Resize",
                                 command=lambda: self.resize_image())
         menu_image.add_cascade(label="Select", menu=menu_select)
@@ -67,6 +72,11 @@ class ImageEditingFrame(Frame):
 
         self.menu_bar.add_cascade(label="Image", menu=menu_image)
 
+        menu_test = Menu(self.menu_bar, tearoff=0)
+        menu_test.add_command(label="Show mask",
+                                command=lambda: self.show_maks())
+        self.menu_bar.add_cascade(label="Test", menu=menu_test)
+
     def resize_image(self):
         h, w, _ = self.cv_image_full.shape
         new_w = simpledialog.askinteger("Resize", "Enter new width:", initialvalue=w, minvalue=1)
@@ -83,132 +93,168 @@ class ImageEditingFrame(Frame):
         y = max(0, min(y, h))
         return (x, y)
 
-    # TODO: Take input and return output
-    def cords_to_full(self):
+    def scale_up_cords(self, cords):
         h_full, w_full, _ = self.cv_image_full.shape
         h_display, w_display, _ = self.cv_image_display.shape
 
         scale = w_full / w_display
 
-        tmp = []
+        scaled_cords = []
 
-        for x,y in self.selection.points:
+        for x,y in cords:
             new_x = int(x * scale)
             new_y = int(y * scale)
             points = (new_x, new_y)
-            tmp.append(points)
+            scaled_cords.append(points)
 
-        self.selection.points = tmp
+        return scaled_cords
+
+    def reset_selection_variables(self):
+        for line_id in self.selection_shape_ids:
+            self.canvas.delete(line_id)
+
+        self.selection_points = []
+        self.selection_shape_ids = []
+        self.selection_mask = None
 
     def start_rectangle(self, event):
-        self.selection.reset_variables()
+        self.reset_selection_variables()
 
-        self.selection.points.append(self.clamp_to_image(event.x, event.y))
-        self.selection.points.append(self.selection.points[0])
+        self.selection_points.append(self.clamp_to_image(event.x, event.y))
+        self.selection_points.append(self.selection_points[0])
 
-        self.selection.to_mouse_shape = self.canvas.create_rectangle(*self.selection.points[0], *self.selection.points[1], outline="red", width=2)
-        self.canvas.bind("<Motion>", self.update_rectangle)
+        self.selection_shape_ids.append(self.canvas.create_rectangle(*self.selection_points[0], *self.selection_points[1], outline="red", width=2))
+
+        self.canvas.bind("<B1-Motion>", self.update_rectangle)
         self.canvas.bind("<ButtonRelease-1>", self.finish_rectangle)
 
     def update_rectangle(self, event):
-        self.selection.points[1] = self.clamp_to_image(event.x, event.y)
-        self.canvas.coords(self.selection.to_mouse_shape, *self.selection.points[0], *self.selection.points[1])
+        self.selection_points[1] = self.clamp_to_image(event.x, event.y)
+        self.canvas.coords(self.selection_shape_ids[0], *self.selection_points[0], *self.selection_points[1])
 
     def finish_rectangle(self, event):
-        self.canvas.unbind("<Motion>")
+        self.canvas.unbind("<B1-Motion>")
         self.canvas.unbind("<ButtonRelease-1>")
 
-
-        self.cords_to_full()
-
-        start = self.selection.points[0]
-        end = self.selection.points[1]
-
-        pts = np.array([
-            [start[0], start[1]],
-            [end[0], start[1]],
-            [end[0], end[1]],
-            [start[0], end[1]]
-        ], np.int32)
-
+        self.selection_points = self.scale_up_cords(self.selection_points)
+        x1, y1 = self.selection_points[0]
+        x2, y2 = self.selection_points[1]
+        pts = np.array([[x1, y1],[x2, y1],[x2, y2],[x1, y2]], np.int32)
         mask = np.zeros(self.cv_image_full.shape[:2], dtype=np.uint8)
         cv2.fillPoly(mask, [pts], 255)
 
-        self.selection.mask = mask
+        self.selection_mask = mask
 
+    def start_lasso(self, event):
+        self.reset_selection_variables()
+
+        self.canvas.bind("<B1-Motion>", self.add_lasso_point)
+        self.canvas.bind("<ButtonRelease-1>", self.finish_lasso)
+
+    def add_lasso_point(self, event):
+        x, y = self.clamp_to_image(event.x, event.y)
+        self.selection_points.append((x, y))
+        if len(self.selection_points) > 1:
+            line_id = self.canvas.create_line(self.selection_points[-2], self.selection_points[-1], fill="red", width=2)
+            self.selection_shape_ids.append(line_id)
+
+    def finish_lasso(self, event):
+        self.canvas.unbind("<B1-Motion>")
+
+        if len(self.selection_points) > 2:
+            line_id = self.canvas.create_line(
+                self.selection_points[-1],
+                self.selection_points[0],
+                fill="red", width=2
+            )
+            self.selection_shape_ids.append(line_id)
+
+        self.selection_points = self.scale_up_cords(self.selection_points)
+        pts = np.array(self.selection_points, np.int32)
+        mask = np.zeros(self.cv_image_full.shape[:2], dtype=np.uint8)
+        cv2.fillPoly(mask, [pts], 255)
+
+        self.selection_mask = mask
 
     def start_polygon(self):
-        self.selection.reset_variables()
+        self.reset_selection_variables()
+
         self.canvas.bind("<Button-1>", self.add_polygon_point)
-
-    def add_polygon_point(self, event):
-        x, y = self.clamp_to_image(event.x, event.y)
-        self.selection.points.append((x, y))
-
-        if len(self.selection.points) > 1:
-            line_id = self.canvas.create_line(self.selection.points[-2], self.selection.points[-1], fill="red", width=2)
-            self.selection.shape_ids.append(line_id)
-
-        self.selection.to_mouse_shape = self.canvas.create_line(self.selection.points[-1], self.selection.points[-1], fill="red", width=2)
-
         self.canvas.bind("<Motion>", self.update_polygon)
         self.canvas.bind("<Button-3>", self.finish_polygon)
 
+    def add_polygon_point(self, event):
+        x, y = self.clamp_to_image(event.x, event.y)
+        self.selection_points.append((x, y))
+
+        if len(self.selection_points) > 1:
+            self.canvas.coords(self.selection_shape_ids[-1], *self.selection_points[-2], *self.selection_points[-1])
+
+        self.selection_shape_ids.append(self.canvas.create_line(self.selection_points[-1], self.selection_points[-1], fill="red", width=2))
+
     def update_polygon(self, event):
+        if len(self.selection_shape_ids) < 1:
+            return
         mouse_pos = self.clamp_to_image(event.x, event.y)
-        self.canvas.coords(self.selection.to_mouse_shape, *self.selection.points[-1], *mouse_pos)
+        self.canvas.coords(self.selection_shape_ids[-1], *self.selection_points[-1], *mouse_pos)
 
 
     def finish_polygon(self, event):
-        if len(self.selection.points) > 2:
-            line_id = self.canvas.create_line(self.selection.points[-1], self.selection.points[0], fill="red", width=2)
-            self.selection.shape_ids.append(line_id)
-
-        self.canvas.delete(self.selection.to_mouse_shape)
-
-        self.cords_to_full()
-
-        pts = np.array(self.selection.points, np.int32)
-
-        mask = np.zeros(self.cv_image_full.shape[:2], dtype=np.uint8)
-        cv2.fillPoly(mask, [pts], 255)
-
         self.canvas.unbind("<Button-1>")
         self.canvas.unbind("<Button-3>")
         self.canvas.unbind("<Motion>")
 
-        self.selection.mask = mask
+        if len(self.selection_points) > 2:
+            self.canvas.coords(self.selection_shape_ids[-1], *self.selection_points[-1], *self.selection_points[0])
+
+        self.selection_points = self.scale_up_cords(self.selection_points)
+        pts = np.array(self.selection_points, np.int32)
+        mask = np.zeros(self.cv_image_full.shape[:2], dtype=np.uint8)
+        cv2.fillPoly(mask, [pts], 255)
+
+        self.selection_mask = mask
+
+    def start_crop(self):
+        self.reset_selection_variables()
+        self.canvas.bind("<Button-1>", self.begin_crop)
+        self.canvas.bind("<B1-Motion>", self.draw_crop_rectangle)
+        self.canvas.bind("<ButtonRelease-1>", self.finish_crop)
+
+    def begin_crop(self, event):
+        self.selection_points.append(self.clamp_to_image(event.x, event.y))
+        self.selection_points.append(self.selection_points[0])
+
+        self.selection_shape_ids.append(
+            self.canvas.create_rectangle(*self.selection_points[0], *self.selection_points[1], outline="blue", width=2))
 
 
-    # TODO: Add lasso
-    # TODO: Improve and clean
+    def draw_crop_rectangle(self, event):
+        self.selection_points[1] = self.clamp_to_image(event.x, event.y)
+        self.canvas.coords(self.selection_shape_ids[0], *self.selection_points[0], *self.selection_points[1])
 
-    # TODO: Finish after changing select
-    def crop(self):
-        h, w, _ = self.cv_image_full.shape
-        c_w = self.canvas.winfo_width()
-        c_h = self.canvas.winfo_height()
+    def finish_crop(self, event):
+        self.canvas.unbind("<B1-Motion>")
+        self.canvas.unbind("<Button-1>")
+        self.canvas.unbind("<ButtonRelease-1>")
 
-        # Same scale used in update_display_image
-        scale = min(c_w / w, c_h / h)
+        x1, y1 = self.selection_points[0]
+        x2, y2 = event.x, event.y
 
-        # Map canvas coords → image coords
-        x0 = int((self.rect_start[0]) / scale)
-        y0 = int((self.rect_start[1]) / scale)
-        x1 = int((self.rect_end[0]) / scale)
-        y1 = int((self.rect_end[1]) / scale)
+        x1, y1 = self.clamp_to_image(x1, y1)
+        x2, y2 = self.clamp_to_image(x2, y2)
 
-        x0, x1 = sorted((x0, x1))
-        y0, y1 = sorted((y0, y1))
+        x1, x2 = sorted((x1, x2))
+        y1, y2 = sorted((y1, y2))
 
-        print(f"{x0=}, {x1=}")
-        print(f"{y0=}, {y1=}")
-        cropped = self.cv_image_full[y0:y1, x0:x1]
+        [(x1,y1),(x2,y2)] = self.scale_up_cords([(x1,y1),(x2,y2)])
+
+        cropped = self.cv_image_full[y1:y2, x1:x2]
         if cropped.size == 0:
-            print("Invalid crop selection.")
+            print("Invalid crop ")
             return
 
         self.cv_image_full = cropped
+
         self.update_display_image()
 
     def apply_image_operation(self, func):
