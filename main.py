@@ -77,3 +77,4 @@ def show_initial_image():
 # Schedule initial image display after window is fully loaded
 main_window.after(100, show_initial_image)
 '''
+
