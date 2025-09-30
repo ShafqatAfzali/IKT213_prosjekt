@@ -1,81 +1,23 @@
-from tkinter import simpledialog, Frame, Canvas, Tk, Menu, BOTH, YES
+from tkinter import Menu, simpledialog
 
-import numpy as np
-from PIL import Image, ImageTk
 import cv2
-import Image_menu as imgFunc
+import numpy as np
 
-root = Tk()
-root.title("Title")
-root.geometry("1000x1000")
-root.configure(background="black")
-
-def cv2_to_tk(cv_img):
-    cv_img_rgb = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
-    pil_img = Image.fromarray(cv_img_rgb)
-    return ImageTk.PhotoImage(pil_img)
+import Sindre.helper_functions as helper
 
 
-class ImageEditingFrame(Frame):
-    def __init__(self, master, *pargs):
-        super().__init__(master, *pargs)
-
-        self.cv_image_full = cv2.imread("img.png", cv2.IMREAD_UNCHANGED)
-        self.cv_image_display = self.cv_image_full.copy()
-        self.tk_background_image = cv2_to_tk(self.cv_image_display)
+class ImageEditor():
+    def __init__(self, canvas, cv_image_full, cv_image_display):
+        self.cv_image_display = cv_image_full
+        self.cv_image_full = cv_image_display
+        self.canvas = canvas
 
         self.selection_points = []
         self.selection_shape_ids = []
         self.selection_mask = None
 
-        self.canvas = Canvas(self, bg="black")
-        self.canvas.pack(fill="both", expand=True)
-        self.canvas.bind("<Configure>", lambda e: self.update_display_image())
-
-
-        self.menu_bar = Menu(self)
-        self.make_menu()
-        master.config(menu=self.menu_bar)
-
     def show_maks(self):
         cv2.imshow("mask", self.selection_mask)
-
-    def make_menu(self):
-        menu_image = Menu(self.menu_bar, tearoff=0)
-
-
-        menu_select = Menu(menu_image, tearoff=0)
-        menu_select.add_command(label="Rectangle",
-                                     command=lambda: self.canvas.bind("<Button-1>", self.start_rectangle))
-        menu_select.add_command(label="Free-form",
-                                     command=lambda: self.canvas.bind("<Button-1>", self.start_lasso))
-        menu_select.add_command(label="Polygon",
-                                command=lambda:  self.start_polygon())
-        menu_select.add_command(label="Crop",
-                                command=lambda: self.start_crop())
-        menu_select.add_command(label="Resize",
-                                command=lambda: self.resize_image())
-        menu_image.add_cascade(label="Select", menu=menu_select)
-
-
-        menu_rotate = Menu(menu_image, tearoff=0)
-        menu_rotate.add_command(label="Rotate CW",
-                                        command=lambda: self.apply_image_operation(imgFunc.rotate90DegreeClockwise))
-        menu_rotate.add_command(label="Rotate CCW",
-                                        command=lambda: self.apply_image_operation(
-                                            imgFunc.rotate90DegreeCounterClockwise))
-        menu_rotate.add_command(label="Flip Vertically",
-                                        command=lambda: self.apply_image_operation(imgFunc.flipVertical))
-        menu_rotate.add_command(label="Flip Horizontal",
-                                        command=lambda: self.apply_image_operation(imgFunc.flipHorizontal))
-        menu_image.add_cascade(label="Rotate", menu=menu_rotate)
-
-        self.menu_bar.add_cascade(label="Image", menu=menu_image)
-
-        menu_test = Menu(self.menu_bar, tearoff=0)
-        menu_test.add_command(label="Show mask",
-                                command=lambda: self.show_maks())
-        self.menu_bar.add_cascade(label="Test", menu=menu_test)
 
     def resize_image(self):
         h, w, _ = self.cv_image_full.shape
@@ -274,13 +216,48 @@ class ImageEditingFrame(Frame):
 
         self.cv_image_display = cv2.resize(self.cv_image_full, (new_w, new_h), interpolation=cv2.INTER_AREA)
         '''
-        self.tk_background_image = cv2_to_tk(self.cv_image_display)
+        self.tk_background_image = helper.cv2_to_tk(self.cv_image_display)
 
         self.canvas.delete("all")
         self.canvas.create_image(0, 0, anchor="nw", image=self.tk_background_image)
 
-if __name__ == "__main__":
-    imageEditingFrame = ImageEditingFrame(root)
-    imageEditingFrame.pack(fill=BOTH, expand=YES)
 
-    root.mainloop()
+def create_image_menu(menu_bar, canvas, cv_image_full, cv_image_display):
+    image_editor  = ImageEditor(canvas, cv_image_full, cv_image_display)
+
+    menu_image = Menu(menu_bar, tearoff=0)
+
+    menu_select = Menu(menu_image, tearoff=0)
+    menu_select.add_command(label="Rectangle",
+                            command=lambda: canvas.bind("<Button-1>", image_editor.start_rectangle))
+    menu_select.add_command(label="Free-form",
+                            command=lambda: canvas.bind("<Button-1>", image_editor.start_lasso))
+    menu_select.add_command(label="Polygon",
+                            command=lambda: image_editor.start_polygon())
+    menu_select.add_command(label="Crop",
+                            command=lambda: image_editor.start_crop())
+    menu_select.add_command(label="Resize",
+                            command=lambda: image_editor.resize_image())
+    menu_image.add_cascade(label="Select", menu=menu_select)
+
+    menu_rotate = Menu(menu_image, tearoff=0)
+    menu_rotate.add_command(label="Rotate CW",
+                            command=lambda: image_editor.apply_image_operation(helper.rotate90DegreeClockwise))
+    menu_rotate.add_command(label="Rotate CCW",
+                            command=lambda: image_editor.apply_image_operation(
+                                helper.rotate90DegreeCounterClockwise))
+    menu_rotate.add_command(label="Flip Vertically",
+                            command=lambda: image_editor.apply_image_operation(helper.flipVertical))
+    menu_rotate.add_command(label="Flip Horizontal",
+                            command=lambda: image_editor.apply_image_operation(helper.flipHorizontal))
+    menu_image.add_cascade(label="Rotate", menu=menu_rotate)
+
+    menu_bar.add_cascade(label="Image", menu=menu_image)
+
+    menu_test = Menu(menu_bar, tearoff=0)
+    menu_test.add_command(label="Show mask",
+                          command=lambda: image_editor.show_maks())
+    menu_bar.add_cascade(label="Test", menu=menu_test)
+
+
+
