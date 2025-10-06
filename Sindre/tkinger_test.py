@@ -3,7 +3,7 @@ from tkinter import simpledialog, Frame, Canvas, Tk, Menu, BOTH, YES
 import numpy as np
 from PIL import Image, ImageTk
 import cv2
-import Image as imgFunc
+import Image_menu as imgFunc
 
 root = Tk()
 root.title("Title")
@@ -262,6 +262,7 @@ class ImageEditingFrame(Frame):
         self.update_display_image()
 
     def update_display_image(self):
+        '''
         c_width = self.canvas.winfo_width()
         c_height = self.canvas.winfo_height()
         h, w, _ = self.cv_image_full.shape
@@ -272,6 +273,7 @@ class ImageEditingFrame(Frame):
         new_h = int(h * scale)
 
         self.cv_image_display = cv2.resize(self.cv_image_full, (new_w, new_h), interpolation=cv2.INTER_AREA)
+        '''
         self.tk_background_image = cv2_to_tk(self.cv_image_display)
 
         self.canvas.delete("all")
