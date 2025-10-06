@@ -6,6 +6,8 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'shafqat'))
 sys.path.append(os.path.join(os.path.dirname(__file__), 'Erling'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'Safwa'))
+from colors_menu import create_colors_menu
 
 #importerer create_shapes_menu fra shafqat folder som lager shapes funkjsoner i menu bar
 from shapes import create_shapes_menu
@@ -38,6 +40,9 @@ create_main_menu(menu_bar, canvas, main_window)
 
 # legger til shapes meny i menu bar
 create_shapes_menu(menu_bar, canvas)
+
+# legger til colors meny (Safwa sin del)
+create_colors_menu(menu_bar, canvas)
 
 # bruker min menu bare i root
 main_window.config(menu=menu_bar)
