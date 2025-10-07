@@ -2,10 +2,9 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 
 import cv2
-from PIL import Image, ImageTk
 
-from Sindre.state import State
-from Sindre.helper_functions import cv2_to_tk, display_image
+from classes.state import State
+from other.helper_functions import update_display_image
 
 # TODO: Clean up, make function for converting if need. ---.
 
@@ -26,15 +25,11 @@ def create_main_menu(state: State, menu_bar):
         if file_path:
             state.current_file_path = file_path
             state.cv_image_full = cv2.imread(file_path)
-            state.cv_image_display = state.cv_image_full.copy()
-            state.tk_image = cv2_to_tk(state.cv_image_display)
-            display_image(state)
+            update_display_image(state)
 
     def save_file():
-        if state.current_file_path and state.cv_image_full.any():
-            cv_img_rgb = cv2.cvtColor(state.cv_image_display, cv2.COLOR_BGR2RGB)
-            pil_img = Image.fromarray(cv_img_rgb)
-            pil_img.save(state.current_file_path)
+        if state.current_file_path and state.cv_image_full is not None:
+            cv2.imwrite(state.current_file_path, state.cv_image_full)
             messagebox.showinfo("Save", f"File saved: {state.current_file_path}")
         else:
             save_as_file()
@@ -47,18 +42,26 @@ def create_main_menu(state: State, menu_bar):
             )
             if file_path:
                 state.current_file_path = file_path
-                cv_img_rgb = cv2.cvtColor(state.cv_image_display, cv2.COLOR_BGR2RGB)
-                pil_img = Image.fromarray(cv_img_rgb)
-                pil_img.save(state.current_file_path)
-                pil_img.save(file_path)
+                cv2.imwrite(state.current_file_path, state.cv_image_full)
                 messagebox.showinfo("Save As", f"File saved as: {file_path}")
 
     def show_properties():
         if state.cv_image_full.any():
-            cv_img_rgb = cv2.cvtColor(state.cv_image_display, cv2.COLOR_BGR2RGB)
-            pil_img = Image.fromarray(cv_img_rgb)
-            props = f"File: {state.current_file_path}\nSize: {pil_img.size}\nMode: {pil_img.mode}"
+            h, w = state.cv_image_full.shape[:2]
+
+            if len(state.cv_image_full.shape) == 2:
+                mode = "L"
+            elif state.cv_image_full.shape[2] == 3:
+                mode = "RGB"
+            elif state.cv_image_full.shape[2] == 4:
+                mode = "RGBA"
+            else:
+                mode = "Unknown"
+
+            props = f"File: {state.current_file_path}\nSize: ({w}, {h})\nMode: {mode}"
+
             messagebox.showinfo("Properties", props)
+
         else:
             messagebox.showwarning("Properties", "No image loaded.")
 
@@ -72,7 +75,7 @@ def create_main_menu(state: State, menu_bar):
     def paste_action():
         if state.clipboard_image:
             state.cv_image_full = state.clipboard_image.copy()
-            display_image(state)
+            update_display_image(state)
             messagebox.showinfo("Paste", "Image pasted from clipboard buffer.")
         else:
             messagebox.showwarning("Paste", "Clipboard is empty.")
@@ -104,9 +107,6 @@ def create_main_menu(state: State, menu_bar):
     clipboard_menu.add_command(label="Paste", command=paste_action)
     clipboard_menu.add_command(label="Cut", command=cut_action)
     menu_bar.add_cascade(label="Clipboard", menu=clipboard_menu)
-    
-    # Bind state.canvas resize event for image display
-    state.canvas.bind("<Configure>", lambda event: display_image(state) if state.cv_image_full else None)
-    
+
     return menu_bar
 

@@ -1,43 +1,39 @@
 from tkinter import *
 
-#sys.path.append(os.path.join(os.path.dirname(__file__), 'shafqat'))
-#sys.path.append(os.path.join(os.path.dirname(__file__), 'Erling'))
+import cv2
 
 from shafqat.shapes import create_shapes_menu
-from Erling.main_menyer import create_main_menu
-from Safwa.colors_menu import create_colors_menu
+from menues.main_menyer import create_main_menu
+from menues.image_menu import create_image_menu
+from classes.state import State
+from other.helper_functions import update_display_image
 
+if __name__ == "__main__":
+    main_window = Tk()
+    main_window.title("IKT213 Photo looksmaxer")
+    main_window.geometry("600x600")
+    main_window.configure(background="black")
 
-#lager pop up window
-main_window = Tk()
-main_window.title("IKT213 Photo looksmaxer")
-main_window.geometry("600x600")
-main_window.configure(background="black")
+    main_frame = Frame(main_window, bg="black")
+    main_frame.pack(fill=BOTH, expand=YES)
 
-#lager frame inni windowet
-main_frame = Frame(main_window, bg="black")
-main_frame.pack(fill=BOTH, expand=YES)
+    menu_bar = Menu(main_window)
 
+    canvas = Canvas(main_frame, bg="black")
+    canvas.pack(fill=BOTH, expand=YES)
 
-#lager menu bar inni frame, denne skal inneholde alle "options" for edditing
-menu_bar = Menu(main_window)
+    canvas.bind("<Configure>", lambda event: update_display_image(state))
 
-#lager canvas for tegning denne inneholder lastet opp bildet,
-#det blir tegnet på canvas som vil si på bildet
-#når man "saver" blir canvas savet som bildet
-canvas = Canvas(main_frame, bg="black")
-canvas.pack(fill=BOTH, expand=YES)
+    state = State()
+    state.canvas = canvas
+    state.main_window = main_window
 
-# legger til main meny i menu bar
-create_main_menu(menu_bar, canvas, main_window)
+    create_main_menu(state, menu_bar)
+    create_shapes_menu(menu_bar, canvas)
+    create_image_menu(state, menu_bar)
 
-# legger til shapes meny i menu bar
-create_shapes_menu(menu_bar, canvas)
+    menu_bar.add_command(label="Test", command=lambda: cv2.imshow("", state.cv_image_full))
+    menu_bar.add_command(label="Test2", command=lambda: cv2.imshow("", state.selection_mask))
+    main_window.config(menu=menu_bar)
 
-# legger til colors meny (Safwa sin del)
-create_colors_menu(menu_bar, canvas)
-
-# bruker min menu bare i root
-main_window.config(menu=menu_bar)
-
-main_window.mainloop()
+    main_window.mainloop()
