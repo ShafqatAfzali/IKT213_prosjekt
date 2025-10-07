@@ -1,7 +1,10 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from tkinter import *
 from classes.state import State
 from other.helper_functions import update_display_image
-
 from menues.tools_menu import create_tools_menu
 from menues.main_menyer import create_main_menu
 from menues.image_menu import create_image_menu
