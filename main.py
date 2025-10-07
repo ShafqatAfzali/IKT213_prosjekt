@@ -1,9 +1,9 @@
 from tkinter import *
 
 from menues.tools_menu import create_tools_menu
-from shafqat.shapes import create_shapes_menu
 from menues.main_menyer import create_main_menu
 from menues.image_menu import create_image_menu
+from menues.colors_menu import create_colors_menu
 from classes.state import State
 from other.helper_functions import update_display_image
 
@@ -20,6 +20,7 @@ if __name__ == "__main__":
     canvas = Canvas(main_frame, bg="black")
     canvas.pack(fill=BOTH, expand=YES)
 
+    canvas.brush_color = "red"
 
     state = State()
     state.canvas = canvas
@@ -31,7 +32,9 @@ if __name__ == "__main__":
     create_main_menu(state, menu_bar)
     create_image_menu(state, menu_bar)
     create_tools_menu(state, menu_bar)
-    create_shapes_menu(menu_bar, state.canvas)
+    #create_shapes_menu(menu_bar, state.canvas)
+    create_colors_menu(state, menu_bar)
+
 
     main_window.config(menu=menu_bar)
 

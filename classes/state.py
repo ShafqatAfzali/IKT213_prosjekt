@@ -1,3 +1,6 @@
+from tkinter import StringVar, IntVar
+
+
 class State:
     def __init__(self):
         self.main_window = None
@@ -14,5 +17,8 @@ class State:
 
 
         self.selection_mask = None
+
+        self.brush_size = 5
+        self.brush_color = (255, 0, 0)
 
         self.clipboard_image = None

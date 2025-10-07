@@ -7,8 +7,6 @@ from other.helper_functions import update_display_image, cv2_to_tk, canvas_to_im
 
 # Brush state
 brush_active = False
-brush_color = (255, 0, 0)  # default red
-brush_size = 5
 
 
 def create_tools_menu(state: State, menu_bar):
@@ -37,11 +35,10 @@ def create_tools_menu(state: State, menu_bar):
             state.canvas.delete("all")
 
     def pick_color():
-        global brush_color
         color = colorchooser.askcolor()[0]  # (R,G,B)
         if color:
-            brush_color = tuple(map(int, color))
-            print("Brush color picked:", brush_color)
+            state.brush_color = tuple(map(int, color))
+            print("Brush color picked:", state.brush_color)
 
     def start_brush():
         global brush_active
@@ -52,13 +49,12 @@ def create_tools_menu(state: State, menu_bar):
         print("Brush mode ON")
 
     def draw_brush(event):
-        global brush_color, brush_size
         if state.cv_image_full is not None:
             image_cords = canvas_to_image_cords(state, [(event.x, event.y)])
             scaled_image_cords = scale_up_cords(state, image_cords)
             (x, y) = scaled_image_cords[0]
 
-            cv2.circle(state.cv_image_full, (x,y), brush_size, brush_color[::-1], -1)
+            cv2.circle(state.cv_image_full, (x,y), state.brush_size, state.brush_color[::-1], -1)
             update_display_image(state)
 
     def stop_brush(event):
@@ -68,9 +64,8 @@ def create_tools_menu(state: State, menu_bar):
             state.canvas.unbind("<B1-Motion>")
         print("Brush mode OFF")
 
-    def set_brush_size(size):
-        global brush_size
-        brush_size = size
+    def set_size(size):
+        state.brush_size = size
         print("Brush size set to", size)
 
     def add_text():
@@ -126,7 +121,7 @@ def create_tools_menu(state: State, menu_bar):
     tools_menu.add_command(label="Binary Filter", command=binary_filter)
     tools_menu.add_command(label="Histogram Threshold", command=histogram_threshold)
     tools_menu.add_separator()
-    tools_menu.add_command(label="Choose Brush Color", command=pick_color)
-    tools_menu.add_command(label="Brush Size 5", command=lambda: set_brush_size(5))
-    tools_menu.add_command(label="Brush Size 10", command=lambda: set_brush_size(10))
+    #tools_menu.add_command(label="Choose Brush Color", command=pick_color)
+    #tools_menu.add_command(label="Brush Size 5", command=lambda: set_size(5))
+    #tools_menu.add_command(label="Brush Size 10", command=lambda: set_size(10))
     menu_bar.add_cascade(label="Tools", menu=tools_menu)
