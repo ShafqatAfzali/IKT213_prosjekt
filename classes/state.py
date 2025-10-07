@@ -8,8 +8,11 @@ class State:
         self.cv_image_display = None
         self.tk_image = None
 
+        # TODO: Move
         self.selection_points = []
         self.selection_shape_ids = []
+
+
         self.selection_mask = None
 
         self.clipboard_image = None

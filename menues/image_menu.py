@@ -3,8 +3,8 @@ from tkinter import Menu, simpledialog
 import cv2
 import numpy as np
 
-from other.helper_functions import *
-from other.image_rotation import *
+from other.helper_functions import update_display_image, scale_up_cords, canvas_to_image_cords, clamp_to_image
+from other.image_rotation import rotate_90_degree_clockwise, rotate_90_degree_counter_clockwise, flip_horizontal, flip_vertical
 from classes.state import State
 
 

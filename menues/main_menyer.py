@@ -6,9 +6,6 @@ import cv2
 from classes.state import State
 from other.helper_functions import update_display_image
 
-# TODO: Clean up, make function for converting if need. ---.
-
-
 def create_main_menu(state: State, menu_bar):
     def new_file():
         state.cv_image_full = None
@@ -35,7 +32,7 @@ def create_main_menu(state: State, menu_bar):
             save_as_file()
 
     def save_as_file():
-        if state.cv_image_full.any():
+        if state.cv_image_full is not None:
             file_path = filedialog.asksaveasfilename(
                 defaultextension=".jpg",
                 filetypes=(("JPEG files", "*.jpg"), ("PNG files", "*.png"), ("All files", "*.*"))
