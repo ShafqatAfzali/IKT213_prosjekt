@@ -5,7 +5,7 @@ from tkinter import *
 
 from shafqat.shapes import create_shapes_menu
 from Erling.main_menyer import create_main_menu
-from safi.colors_menu import create_colors_menu
+from Safwa.colors_menu import create_colors_menu
 
 
 #lager pop up window

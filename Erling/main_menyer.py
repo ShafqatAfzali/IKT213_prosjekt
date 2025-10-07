@@ -1,115 +1,90 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
+
+import cv2
 from PIL import Image, ImageTk
 
+from Sindre.state import State
+from Sindre.helper_functions import cv2_to_tk, display_image
 
-current_image = None
-current_image_tk = None
-current_file_path = None
-
-
-def new_file():
-    global current_image, current_image_tk, current_file_path
-    current_image = None
-    current_image_tk = None
-    current_file_path = None
-    canvas.delete("all")
-    messagebox.showinfo("New File", "Started a new workspace.")
+# TODO: Clean up, make function for converting if need. ---.
 
 
-def open_file():
-    global current_image, current_image_tk, current_file_path
-    file_path = filedialog.askopenfilename(
-        title="Open Image",
-        filetypes=(("Image Files", "*.jpg;*.jpeg;*.png;*.gif"), ("All Files", "*.*"))
-    )
-    if file_path:
-        current_file_path = file_path
-        current_image = Image.open(file_path)
-        display_image(current_image)
+def create_main_menu(state: State, menu_bar):
+    def new_file():
+        state.cv_image_full = None
+        state.current_image_tk = None
+        state.current_file_path = None
+        state.canvas.delete("all")
+        messagebox.showinfo("New File", "Started a new workspace.")
 
-
-def save_file():
-    global current_file_path, current_image
-    if current_file_path and current_image:
-        current_image.save(current_file_path)
-        messagebox.showinfo("Save", f"File saved: {current_file_path}")
-    else:
-        save_as_file()
-
-
-def save_as_file():
-    global current_file_path, current_image
-    if current_image:
-        file_path = filedialog.asksaveasfilename(
-            defaultextension=".jpg",
-            filetypes=(("JPEG files", "*.jpg"), ("PNG files", "*.png"), ("All files", "*.*"))
+    def open_file():
+        file_path = filedialog.askopenfilename(
+            title="Open Image",
+            filetypes=(("Image Files", "*.jpg;*.jpeg;*.png;*.gif"), ("All Files", "*.*"))
         )
         if file_path:
-            current_file_path = file_path
-            current_image.save(file_path)
-            messagebox.showinfo("Save As", f"File saved as: {file_path}")
+            state.current_file_path = file_path
+            state.cv_image_full = cv2.imread(file_path)
+            state.cv_image_display = state.cv_image_full.copy()
+            state.tk_image = cv2_to_tk(state.cv_image_display)
+            display_image(state)
 
+    def save_file():
+        if state.current_file_path and state.cv_image_full.any():
+            cv_img_rgb = cv2.cvtColor(state.cv_image_display, cv2.COLOR_BGR2RGB)
+            pil_img = Image.fromarray(cv_img_rgb)
+            pil_img.save(state.current_file_path)
+            messagebox.showinfo("Save", f"File saved: {state.current_file_path}")
+        else:
+            save_as_file()
 
-def show_properties():
-    global current_image, current_file_path
-    if current_image:
-        props = f"File: {current_file_path}\nSize: {current_image.size}\nMode: {current_image.mode}"
-        messagebox.showinfo("Properties", props)
-    else:
-        messagebox.showwarning("Properties", "No image loaded.")
+    def save_as_file():
+        if state.cv_image_full.any():
+            file_path = filedialog.asksaveasfilename(
+                defaultextension=".jpg",
+                filetypes=(("JPEG files", "*.jpg"), ("PNG files", "*.png"), ("All files", "*.*"))
+            )
+            if file_path:
+                state.current_file_path = file_path
+                cv_img_rgb = cv2.cvtColor(state.cv_image_display, cv2.COLOR_BGR2RGB)
+                pil_img = Image.fromarray(cv_img_rgb)
+                pil_img.save(state.current_file_path)
+                pil_img.save(file_path)
+                messagebox.showinfo("Save As", f"File saved as: {file_path}")
 
+    def show_properties():
+        if state.cv_image_full.any():
+            cv_img_rgb = cv2.cvtColor(state.cv_image_display, cv2.COLOR_BGR2RGB)
+            pil_img = Image.fromarray(cv_img_rgb)
+            props = f"File: {state.current_file_path}\nSize: {pil_img.size}\nMode: {pil_img.mode}"
+            messagebox.showinfo("Properties", props)
+        else:
+            messagebox.showwarning("Properties", "No image loaded.")
 
-def quit_app():
-    main_window.quit()
+    def copy_action():
+        if state.cv_image_full:
+            state.clipboard_image = state.cv_image_full.copy()
+            messagebox.showinfo("Copy", "Image copied to clipboard buffer.")
+        else:
+            messagebox.showwarning("Copy", "No image to copy.")
 
+    def paste_action():
+        if state.clipboard_image:
+            state.cv_image_full = state.clipboard_image.copy()
+            display_image(state)
+            messagebox.showinfo("Paste", "Image pasted from clipboard buffer.")
+        else:
+            messagebox.showwarning("Paste", "Clipboard is empty.")
 
-def copy_action():
-    global clipboard_image, current_image
-    if current_image:
-        clipboard_image = current_image.copy()
-        messagebox.showinfo("Copy", "Image copied to clipboard buffer.")
-    else:
-        messagebox.showwarning("Copy", "No image to copy.")
-
-
-def paste_action():
-    global clipboard_image, current_image
-    if clipboard_image:
-        current_image = clipboard_image.copy()
-        display_image(current_image)
-        messagebox.showinfo("Paste", "Image pasted from clipboard buffer.")
-    else:
-        messagebox.showwarning("Paste", "Clipboard is empty.")
-
-
-def cut_action():
-    global clipboard_image, current_image
-    if current_image:
-        clipboard_image = current_image.copy()
-        current_image = None
-        canvas.delete("all")
-        messagebox.showinfo("Cut", "Image cut and stored in clipboard buffer.")
-    else:
-        messagebox.showwarning("Cut", "No image to cut.")
-
-
-def display_image(img):
-    """Resize and display image on canvas"""
-    global current_image_tk
-    canvas.delete("all")
-    # Scale image to fit window
-    w, h = canvas.winfo_width(), canvas.winfo_height()
-    img_resized = img.copy()
-    img_resized.thumbnail((w, h))
-    current_image_tk = ImageTk.PhotoImage(img_resized)
-    canvas.create_image(w//2, h//2, image=current_image_tk, anchor="center")
-
-
-def create_main_menu(menu_bar, canvas_widget, main_window):
-    """Create the main menu and add it to the menu bar"""
-    global canvas
-    canvas = canvas_widget
+    def cut_action():
+        if state.cv_image_full:
+            state.clipboard_image = state.cv_image_full.copy()
+            state.cv_image_full = None
+            state.canvas.delete("all")
+            messagebox.showinfo("Cut", "Image cut and stored in clipboard buffer.")
+        else:
+            messagebox.showwarning("Cut", "No image to cut.")
     
     # File Menu
     file_menu = tk.Menu(menu_bar, tearoff=0)
@@ -120,7 +95,7 @@ def create_main_menu(menu_bar, canvas_widget, main_window):
     file_menu.add_separator()
     file_menu.add_command(label="Properties", command=show_properties)
     file_menu.add_separator()
-    file_menu.add_command(label="Quit", command=main_window.quit)
+    file_menu.add_command(label="Quit", command=state.main_window.quit)
     menu_bar.add_cascade(label="File", menu=file_menu)
     
     # Clipboard Menu
@@ -130,8 +105,8 @@ def create_main_menu(menu_bar, canvas_widget, main_window):
     clipboard_menu.add_command(label="Cut", command=cut_action)
     menu_bar.add_cascade(label="Clipboard", menu=clipboard_menu)
     
-    # Bind canvas resize event for image display
-    canvas.bind("<Configure>", lambda event: display_image(current_image) if current_image else None)
+    # Bind state.canvas resize event for image display
+    state.canvas.bind("<Configure>", lambda event: display_image(state) if state.cv_image_full else None)
     
     return menu_bar
 
