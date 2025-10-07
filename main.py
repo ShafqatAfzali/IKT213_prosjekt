@@ -1,11 +1,14 @@
 from tkinter import *
+from classes.state import State
+from other.helper_functions import update_display_image
 
 from menues.tools_menu import create_tools_menu
 from menues.main_menyer import create_main_menu
 from menues.image_menu import create_image_menu
 from menues.colors_menu import create_colors_menu
-from classes.state import State
-from other.helper_functions import update_display_image
+from menues.shapes_menu import create_shapes_menu
+
+
 
 if __name__ == "__main__":
     main_window = Tk()
@@ -32,7 +35,7 @@ if __name__ == "__main__":
     create_main_menu(state, menu_bar)
     create_image_menu(state, menu_bar)
     create_tools_menu(state, menu_bar)
-    #create_shapes_menu(menu_bar, state.canvas)
+    create_shapes_menu(state, menu_bar)
     create_colors_menu(state, menu_bar)
 
 
