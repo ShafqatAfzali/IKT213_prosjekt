@@ -43,7 +43,7 @@ def create_main_menu(state: State, menu_bar):
                 messagebox.showinfo("Save As", f"File saved as: {file_path}")
 
     def show_properties():
-        if state.cv_image_full.any():
+        if state.cv_image_full is not None:
             h, w = state.cv_image_full.shape[:2]
 
             if len(state.cv_image_full.shape) == 2:

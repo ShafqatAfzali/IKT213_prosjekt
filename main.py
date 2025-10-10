@@ -1,5 +1,8 @@
 import sys
 import os
+
+from menues.test_menu import create_test_menu
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from tkinter import *
@@ -11,7 +14,8 @@ from menues.image_menu import create_image_menu
 from menues.colors_menu import create_colors_menu
 from menues.shapes_menu import create_shapes_menu
 
-
+# TODO: Add use guide?
+# TODO: Add hotkeys for menu options?
 
 if __name__ == "__main__":
     main_window = Tk()
@@ -22,26 +26,24 @@ if __name__ == "__main__":
     main_frame = Frame(main_window, bg="black")
     main_frame.pack(fill=BOTH, expand=YES)
 
-
     canvas = Canvas(main_frame, bg="black")
     canvas.pack(fill=BOTH, expand=YES)
-
-    canvas.brush_color = "red"
+    canvas.bind("<Configure>", lambda event: update_display_image(state))
+    canvas.focus_set()
 
     state = State()
     state.canvas = canvas
     state.main_window = main_window
 
-    canvas.bind("<Configure>", lambda event: update_display_image(state))
 
     menu_bar = Menu(main_window)
+
     create_main_menu(state, menu_bar)
     create_image_menu(state, menu_bar)
     create_tools_menu(state, menu_bar)
     create_shapes_menu(state, menu_bar)
     create_colors_menu(state, menu_bar)
-
-
+    create_test_menu(state, menu_bar)
     main_window.config(menu=menu_bar)
 
     main_window.mainloop()

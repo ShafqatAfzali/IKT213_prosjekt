@@ -3,7 +3,7 @@ from tkinter import colorchooser, simpledialog
 import cv2
 
 from classes.state import State
-from other.helper_functions import update_display_image, cv2_to_tk, canvas_to_image_cords, scale_up_cords
+from other.helper_functions import update_display_image, cv2_to_tk, canvas_to_image_cords, scale_to_full_image_cords
 
 # Brush state
 brush_active = False
@@ -51,7 +51,7 @@ def create_tools_menu(state: State, menu_bar):
     def draw_brush(event):
         if state.cv_image_full is not None:
             image_cords = canvas_to_image_cords(state, [(event.x, event.y)])
-            scaled_image_cords = scale_up_cords(state, image_cords)
+            scaled_image_cords = scale_to_full_image_cords(state, image_cords)
             (x, y) = scaled_image_cords[0]
 
             cv2.circle(state.cv_image_full, (x,y), state.brush_size, state.brush_color[::-1], -1)
@@ -78,35 +78,61 @@ def create_tools_menu(state: State, menu_bar):
 
     # === Filters ===
     def gaussian_filter():
-        if state.cv_image_full is not None:
-            state.cv_image_full = cv2.GaussianBlur(state.cv_image_full, (5, 5), 0)
-            update_display_image(state)
+        if state.cv_image_full is None:
+            return
+
+        gaussian_blur = cv2.GaussianBlur(state.cv_image_full, (5, 5), 0)
+
+        if state.selection_mask is not None:
+            state.cv_image_full[state.selection_mask == 255] = gaussian_blur[state.selection_mask == 255]
+        else:
+            state.cv_image_full = gaussian_blur
+        update_display_image(state)
 
     def sobel_filter():
-        if state.cv_image_full is not None:
-            gray = cv2.cvtColor(state.cv_image_full, cv2.COLOR_BGR2GRAY)
-            sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=5)
-            sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=5)
-            sobel = cv2.magnitude(sobelx, sobely)
-            sobel = cv2.convertScaleAbs(sobel)
-            state.cv_image_full = cv2.cvtColor(sobel, cv2.COLOR_GRAY2RGB)
-            update_display_image(state)
+        if state.cv_image_full is None:
+            return
+
+        gray = cv2.cvtColor(state.cv_image_full, cv2.COLOR_BGR2GRAY)
+        sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=5)
+        sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=5)
+        sobel = cv2.magnitude(sobelx, sobely)
+        sobel = cv2.convertScaleAbs(sobel)
+        sobel_rgb = cv2.cvtColor(sobel, cv2.COLOR_GRAY2BGR)
+
+        if state.selection_mask is not None:
+            state.cv_image_full[state.selection_mask == 255] = sobel_rgb[state.selection_mask == 255]
+        else:
+            state.cv_image_full = sobel_rgb
+        update_display_image(state)
 
     def binary_filter():
-        if state.cv_image_full is not None:
-            gray = cv2.cvtColor(state.cv_image_full, cv2.COLOR_BGR2GRAY)
-            _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
-            state.cv_image_full = cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)
-            update_display_image(state)
+        if state.cv_image_full is None:
+            return
+        gray = cv2.cvtColor(state.cv_image_full, cv2.COLOR_BGR2GRAY)
+        _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
+        binary_rgb = cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)
+
+        if state.selection_mask is not None:
+            state.cv_image_full[state.selection_mask == 255] = binary_rgb[state.selection_mask == 255]
+        else:
+            state.cv_image_full = binary_rgb
+
+        update_display_image(state)
 
     def histogram_threshold():
-        if state.cv_image_full is not None:
-            gray = cv2.cvtColor(state.cv_image_full, cv2.COLOR_BGR2GRAY)
-            _, thresh = cv2.threshold(
-                gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
-            )
-            state.cv_image_full = cv2.cvtColor(thresh, cv2.COLOR_GRAY2RGB)
-            update_display_image(state)
+        if state.cv_image_full is None:
+            return
+        gray = cv2.cvtColor(state.cv_image_full, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        thresh_rgb = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+
+        if state.selection_mask is not None:
+            state.cv_image_full[state.selection_mask == 255] = thresh_rgb[state.selection_mask == 255]
+        else:
+            state.cv_image_full = thresh_rgb
+
+        update_display_image(state)
 
     tools_menu = tk.Menu(menu_bar, tearoff=0)
     tools_menu.add_command(label="Zoom In", command=zoom_in)
