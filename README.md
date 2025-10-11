@@ -46,5 +46,5 @@ python main.py
 ```
 
 Notes: 
-Tested with Python 3.10 on Windows 10.
+Tested with Python 3.13 on Windows 10.
 Tkinter must be installed (usually included with Python).
