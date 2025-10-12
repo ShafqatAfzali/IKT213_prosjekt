@@ -4,7 +4,9 @@ import cv2
 import numpy as np
 
 from classes.state import State
-from other.helper_functions import update_display_image, cv2_to_tk, canvas_to_image_cords_xy_sets, scale_to_full_image_cords
+from helpers.image_render import update_display_image
+from helpers.image_conversion import cv2_to_tk
+from helpers.cord_utils import canvas_to_image_cords, display_image_cords_to_full_image
 
 # Brush state
 brush_active = False
@@ -62,8 +64,8 @@ def create_tools_menu(state: State, menu_bar):
         if state.cv_image_full is None:
             return
 
-        image_cords = canvas_to_image_cords_xy_sets(state, [(event.x, event.y)])
-        scaled_image_cords = scale_to_full_image_cords(state, image_cords)
+        image_cords = canvas_to_image_cords(state, [(event.x, event.y)])
+        scaled_image_cords = display_image_cords_to_full_image(state, image_cords)
         (x, y) = scaled_image_cords[0]
 
         cv2.circle(state.preview_mask, (x, y), state.brush_size, 255, -1)

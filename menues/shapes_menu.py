@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import colorchooser, simpledialog
-from other.helper_functions import update_display_image, canvas_to_image_cords_xy_sets
+from helpers.image_render import update_display_image
+from helpers.cord_utils import canvas_to_image_cords
 
 import cv2
 import numpy as np
@@ -53,6 +54,7 @@ def create_shapes_menu(state: State, menu_bar):
         if width:
             line_width = width
 
+    # TODO: draw shape to mask instead?
     def start_drawing(event):
         """Start drawing a shape"""
         global start_x, start_y, current_shape
@@ -101,7 +103,6 @@ def create_shapes_menu(state: State, menu_bar):
                           event.x, event.y  # bottom right
                           )
 
-    # TODO: Fix color, red is blue currently
     # TODO: Fix, shapes move slightly when placed
     def finish_drawing(event):
         """Finish drawing the shape"""
@@ -113,18 +114,16 @@ def create_shapes_menu(state: State, menu_bar):
 
         # get final coordinates from canvas
         coords = state.canvas.coords(current_shape)
-        print(coords)
-        [(x1, y1), (x2, y2)] = canvas_to_image_cords_xy_sets(state, [(coords[0], coords[1]), (coords[2], coords[3])])
+        [(x1, y1), (x2, y2)] = canvas_to_image_cords(state, [(coords[0], coords[1]), (coords[2], coords[3])])
         coords = [x1,y1,x2,y2]
-        print(coords)
 
         def color_to_bgr(color):
             if not color:
                 return None
             # Tkinter color names
             try:
-                rgb = state.canvas.winfo_rgb(color)  # returns 16-bit per channel
-                return (rgb[2] // 256, rgb[1] // 256, rgb[0] // 256)  # BGR
+                rgb = state.canvas.winfo_rgb(color)
+                return (rgb)
             except Exception:
                 return None
 
@@ -151,8 +150,6 @@ def create_shapes_menu(state: State, menu_bar):
                     cv2.fillPoly(result, [pts], bgr_fill[::-1])
             return result
 
-        print("AAAAAAAAAAAAAAAAAAAAAAAAA")
-
         state.operations.append(
             (
                 draw_shape,
@@ -167,12 +164,10 @@ def create_shapes_menu(state: State, menu_bar):
             )
         )
 
-        print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
-
-
         state.canvas.delete(current_shape)
         current_shape = None
 
+        state.redo_stack.clear()
         update_display_image(state)
 
 

@@ -7,15 +7,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from tkinter import *
 from classes.state import State
-from other.helper_functions import update_display_image
+from helpers.image_render import update_display_image
 from menues.tools_menu import create_tools_menu
-from menues.main_menyer import create_main_menu
+from menues.main_menu import create_main_menu
 from menues.image_menu import create_image_menu
 from menues.colors_menu import create_colors_menu
 from menues.shapes_menu import create_shapes_menu
-
-# TODO: Add use guide?
-# TODO: Add hotkeys for menu options?
 
 if __name__ == "__main__":
     main_window = Tk()

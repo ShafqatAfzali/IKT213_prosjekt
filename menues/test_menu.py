@@ -5,7 +5,7 @@ from cv2 import imshow
 from classes.state import State
 from tkinter import Menu
 
-from other.helper_functions import update_display_image
+from helpers.image_render import update_display_image
 
 def create_test_menu(state: State, menu_bar):
     def show_selection_mask():
@@ -18,6 +18,7 @@ def create_test_menu(state: State, menu_bar):
         state.current_file_path = file_path
         state.original_image = cv2.imread(file_path)
         state.cv_image_full = state.original_image.copy()
+        state.redo_stack.clear()
         update_display_image(state)
 
 

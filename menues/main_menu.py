@@ -4,7 +4,9 @@ from tkinter import filedialog, messagebox
 import cv2
 
 from classes.state import State
-from other.helper_functions import update_display_image
+from helpers.image_render import update_display_image
+from helpers.menu_utils import add_menu_command_with_hotkey
+
 
 def create_main_menu(state: State, menu_bar):
     def new_file():
@@ -24,6 +26,7 @@ def create_main_menu(state: State, menu_bar):
             state.original_image = cv2.imread(file_path)
             state.cv_image_full = state.original_image.copy()
             state.operations.clear()
+            state.redo_stack.clear()
             update_display_image(state)
 
     def save_file():
@@ -77,7 +80,7 @@ def create_main_menu(state: State, menu_bar):
             update_display_image(state)
 
 
-
+    # TODO: Implement copy, paste and cut
     def copy_action():
         if state.cv_image_full:
             state.clipboard_image = state.cv_image_full.copy()
@@ -88,6 +91,7 @@ def create_main_menu(state: State, menu_bar):
     def paste_action():
         if state.clipboard_image:
             state.cv_image_full = state.clipboard_image.copy()
+            state.redo_stack.clear()
             update_display_image(state)
             messagebox.showinfo("Paste", "Image pasted from clipboard buffer.")
         else:
@@ -109,10 +113,8 @@ def create_main_menu(state: State, menu_bar):
     file_menu.add_command(label="Save", command=save_file)
     file_menu.add_command(label="Save As", command=save_as_file)
     file_menu.add_separator()
-    file_menu.add_command(label="undo", command=undo)
-    state.canvas.bind_all("<Control-z>", lambda _: undo())
-    file_menu.add_command(label="redo", command=redo)
-    state.canvas.bind_all("<Control-y>", lambda _: redo())
+    add_menu_command_with_hotkey(state, file_menu, "Undo", undo, "Control+z")
+    add_menu_command_with_hotkey(state, file_menu, "Redo", redo, "Control+y")
     file_menu.add_separator()
     file_menu.add_command(label="Properties", command=show_properties)
     file_menu.add_separator()
