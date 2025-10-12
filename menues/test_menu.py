@@ -20,9 +20,12 @@ def create_test_menu(state: State, menu_bar):
         state.cv_image_full = state.original_image.copy()
         update_display_image(state)
 
+
+
     test_menu = Menu(menu_bar, tearoff=0)
     test_menu.add_command(label="Show mask", command=show_selection_mask)
     test_menu.add_command(label="Open lambo", command=open_file)
     state.canvas.bind_all("<Control-a>", lambda _: open_file())
+
     menu_bar.add_cascade(label="Test", menu=test_menu)
 

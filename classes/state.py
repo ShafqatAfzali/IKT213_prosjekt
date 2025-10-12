@@ -10,6 +10,9 @@ class State:
         self.tk_image = None
 
         self.operations = [] # (func, args, kwargs)
+        self.redo_stack = []
+
+        self.preview_mask = None
 
         # TODO: Move
         self.selection_points = []

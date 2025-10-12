@@ -64,6 +64,20 @@ def create_main_menu(state: State, menu_bar):
         else:
             messagebox.showwarning("Properties", "No image loaded.")
 
+
+    def undo():
+        if state.operations:
+            state.redo_stack.append(state.operations.pop())
+            update_display_image(state)
+
+    # TODO: Add clear redo stack when making new changes
+    def redo():
+        if state.redo_stack:
+            state.operations.append(state.redo_stack.pop())
+            update_display_image(state)
+
+
+
     def copy_action():
         if state.cv_image_full:
             state.clipboard_image = state.cv_image_full.copy()
@@ -94,6 +108,11 @@ def create_main_menu(state: State, menu_bar):
     file_menu.add_command(label="Open", command=open_file)
     file_menu.add_command(label="Save", command=save_file)
     file_menu.add_command(label="Save As", command=save_as_file)
+    file_menu.add_separator()
+    file_menu.add_command(label="undo", command=undo)
+    state.canvas.bind_all("<Control-z>", lambda _: undo())
+    file_menu.add_command(label="redo", command=redo)
+    state.canvas.bind_all("<Control-y>", lambda _: redo())
     file_menu.add_separator()
     file_menu.add_command(label="Properties", command=show_properties)
     file_menu.add_separator()

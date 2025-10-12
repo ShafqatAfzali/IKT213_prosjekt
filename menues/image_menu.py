@@ -3,12 +3,12 @@ from tkinter import Menu, simpledialog
 import cv2
 import numpy as np
 
-from other.helper_functions import update_display_image, scale_to_full_image_cords, canvas_to_image_cords, \
-    clamp_to_image, \
-    canvas_to_image_offset, get_display_scale, full_image_cords_to_display, apply_image_operation
+from other.helper_functions import update_display_image, scale_to_full_image_cords, canvas_to_image_cords_xy_sets, \
+    clamp_to_image, canvas_to_image_offset, get_display_scale, full_image_cords_to_display
 from other.image_rotation import rotate_90_degree_clockwise, rotate_90_degree_counter_clockwise, flip_horizontal, flip_vertical
 from classes.state import State
 
+# NOTE TO SELF: Tidy up
 
 def create_image_menu(state: State, menu_bar):
     def reset_selection():
@@ -26,6 +26,10 @@ def create_image_menu(state: State, menu_bar):
         mask = np.zeros(state.cv_image_full.shape[:2], dtype=np.uint8)
         cv2.fillPoly(mask, [pts], 255)
         return mask
+
+    def apply_image_operation(func):
+        state.operations.append((func, [], {}))
+        update_display_image(state)
 
 # ---------- Rectangle ----------
     def start_rectangle(event):
@@ -181,24 +185,32 @@ def create_image_menu(state: State, menu_bar):
         x1, x2 = sorted((x1, x2))
         y1, y2 = sorted((y1, y2))
 
-        [(x1, y1), (x2, y2)] = canvas_to_image_cords(state, [(x1, y1), (x2, y2)])
+        [(x1, y1), (x2, y2)] = canvas_to_image_cords_xy_sets(state, [(x1, y1), (x2, y2)])
         [(x1, y1), (x2, y2)] = scale_to_full_image_cords(state, [(x1, y1), (x2, y2)])
 
+        state.operations.append((crop_image, [x1, y1, x2, y2], {}))
+        reset_selection()
+        update_display_image(state)
+
+    def crop_image(image, x1, y1, x2, y2):
         cropped = state.cv_image_full[y1:y2, x1:x2]
         if cropped.size == 0:
             print("Invalid crop ")
-            return
+            return image
+        return cropped
 
-        state.cv_image_full = cropped
-        update_display_image(state)
+    def resize_image(image, new_w, new_h):
+        if new_w and new_h:
+            image = cv2.resize(image, (new_w, new_h))
+            return image
+        return image
 
-    def resize_image():
+    def apply_resize():
         h, w = state.cv_image_full.shape[:2]
         new_w = simpledialog.askinteger("Resize", "Enter new width:", initialvalue=w, minvalue=1)
         new_h = simpledialog.askinteger("Resize", "Enter new height:", initialvalue=h, minvalue=1)
-        if new_w and new_h:
-            state.cv_image_full = cv2.resize(state.cv_image_full, (new_w, new_h))
-            update_display_image(state)
+        state.operations.append((resize_image, [new_w, new_h], {}))
+        update_display_image(state)
 
     menu_image = Menu(menu_bar, tearoff=0)
 
@@ -207,15 +219,14 @@ def create_image_menu(state: State, menu_bar):
     menu_select.add_command(label="Lasso", command=lambda: state.canvas.bind("<Button-1>", start_lasso))
     menu_select.add_command(label="Polygon", command=lambda: start_polygon())
     menu_select.add_command(label="Crop", command=lambda: start_crop())
-    menu_select.add_command(label="Resize", command=resize_image)
+    menu_select.add_command(label="Resize", command=apply_resize)
     menu_image.add_cascade(label="Select", menu=menu_select)
 
     menu_rotate = Menu(menu_image, tearoff=0)
     menu_rotate.add_command(label="Rotate CW",
-                            command=lambda: apply_image_operation(state, rotate_90_degree_clockwise))
+                            command=lambda: apply_image_operation(rotate_90_degree_clockwise))
     menu_rotate.add_command(label="Rotate CCW",
-                            command=lambda: apply_image_operation(
-                                rotate_90_degree_counter_clockwise))
+                            command=lambda: apply_image_operation(rotate_90_degree_counter_clockwise))
     menu_rotate.add_command(label="Flip Vertically",
                             command=lambda: apply_image_operation(flip_vertical))
     menu_rotate.add_command(label="Flip Horizontal",

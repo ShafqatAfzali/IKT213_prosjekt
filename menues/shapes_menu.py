@@ -1,5 +1,9 @@
 import tkinter as tk
 from tkinter import colorchooser, simpledialog
+from other.helper_functions import update_display_image, canvas_to_image_cords_xy_sets
+
+import cv2
+import numpy as np
 
 from classes.state import State
 
@@ -97,10 +101,80 @@ def create_shapes_menu(state: State, menu_bar):
                           event.x, event.y  # bottom right
                           )
 
+    # TODO: Fix color, red is blue currently
+    # TODO: Fix, shapes move slightly when placed
     def finish_drawing(event):
         """Finish drawing the shape"""
         global current_shape
+
+        if current_shape is None:
+            return
+
+
+        # get final coordinates from canvas
+        coords = state.canvas.coords(current_shape)
+        print(coords)
+        [(x1, y1), (x2, y2)] = canvas_to_image_cords_xy_sets(state, [(coords[0], coords[1]), (coords[2], coords[3])])
+        coords = [x1,y1,x2,y2]
+        print(coords)
+
+        def color_to_bgr(color):
+            if not color:
+                return None
+            # Tkinter color names
+            try:
+                rgb = state.canvas.winfo_rgb(color)  # returns 16-bit per channel
+                return (rgb[2] // 256, rgb[1] // 256, rgb[0] // 256)  # BGR
+            except Exception:
+                return None
+
+        def draw_shape(image, shape_type, coords, outline, fill, width):
+            result = image.copy()
+            bgr_outline = color_to_bgr(outline)
+            bgr_fill = color_to_bgr(fill)
+
+            if shape_type == "rectangle":
+                x1, y1, x2, y2 = map(int, coords)
+                cv2.rectangle(result, (x1, y1), (x2, y2), bgr_outline[::-1], width)
+            elif shape_type == "oval":
+                x1, y1, x2, y2 = map(int, coords)
+                center = ((x1 + x2) // 2, (y1 + y2) // 2)
+                axes = ((x2 - x1) // 2, (y2 - y1) // 2)
+                cv2.ellipse(result, center, axes, 0, 0, 360, bgr_outline[::-1], width)
+            elif shape_type == "line":
+                x1, y1, x2, y2 = map(int, coords)
+                cv2.line(result, (x1, y1), (x2, y2), bgr_outline[::-1], width)
+            elif shape_type == "triangle":
+                pts = np.array(coords, np.int32).reshape((-1, 1, 2))
+                cv2.polylines(result, [pts], isClosed=True, color=bgr_outline[::-1], thickness=width)
+                if bgr_fill:
+                    cv2.fillPoly(result, [pts], bgr_fill[::-1])
+            return result
+
+        print("AAAAAAAAAAAAAAAAAAAAAAAAA")
+
+        state.operations.append(
+            (
+                draw_shape,
+                [],  # no positional args
+                {
+                    "shape_type": current_shape_type,
+                    "coords": coords,
+                    "outline": outline_color,
+                    "fill": fill_color,
+                    "width": line_width
+                }
+            )
+        )
+
+        print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
+
+
+        state.canvas.delete(current_shape)
         current_shape = None
+
+        update_display_image(state)
+
 
     def enable_shape_drawing():
         """Enable shape drawing on the state.canvas"""

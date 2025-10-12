@@ -3,19 +3,32 @@ from PIL import Image, ImageTk
 
 from classes.state import State
 
+# TODO: Add menu and hotkey helper function
+
+def hex_to_bgr(hex_color):
+    """Convert hex string '#RRGGBB' to BGR tuple for OpenCV"""
+    hex_color = hex_color.lstrip("#")
+    r = int(hex_color[0:2], 16)
+    g = int(hex_color[2:4], 16)
+    b = int(hex_color[4:6], 16)
+    return (b, g, r)
+
 def cv2_to_tk(cv_img):
     cv_img_rgb = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
     pil_img = Image.fromarray(cv_img_rgb)
     return ImageTk.PhotoImage(pil_img)
 
-def apply_image_operation(state: State, func):
-    state.operations.append((func, [], {}))
-    update_display_image(state)
-
 def render_pipeline(state: State):
     image = state.original_image.copy()
     for func, args, kwargs in state.operations:
         image = func(image, *args, **kwargs)
+
+    if state.preview_mask is not None:
+        mask = state.preview_mask
+        color = state.brush_color
+        for c in range(3):  # BGR channels
+            image[mask == 255, c] = color[::-1][c]
+
     state.cv_image_full = image
     return image
 
@@ -57,7 +70,7 @@ def get_display_scale(state: State):
     scale = min(w_display / w_full,  h_display / h_full)
     return scale
 
-def canvas_to_image_cords(state: State, cords):
+def canvas_to_image_cords_xy_sets(state: State, cords):
     c_width = state.canvas.winfo_width()
     c_height = state.canvas.winfo_height()
     h, w = state.cv_image_display.shape[:2]
