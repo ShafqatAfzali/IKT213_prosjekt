@@ -21,7 +21,9 @@ def create_main_menu(state: State, menu_bar):
         )
         if file_path:
             state.current_file_path = file_path
-            state.cv_image_full = cv2.imread(file_path)
+            state.original_image = cv2.imread(file_path)
+            state.cv_image_full = state.original_image.copy()
+            state.operations.clear()
             update_display_image(state)
 
     def save_file():

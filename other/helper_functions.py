@@ -3,11 +3,21 @@ from PIL import Image, ImageTk
 
 from classes.state import State
 
-
 def cv2_to_tk(cv_img):
     cv_img_rgb = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
     pil_img = Image.fromarray(cv_img_rgb)
     return ImageTk.PhotoImage(pil_img)
+
+def apply_image_operation(state: State, func):
+    state.operations.append((func, [], {}))
+    update_display_image(state)
+
+def render_pipeline(state: State):
+    image = state.original_image.copy()
+    for func, args, kwargs in state.operations:
+        image = func(image, *args, **kwargs)
+    state.cv_image_full = image
+    return image
 
 def update_display_image(state: State):
     if state.cv_image_full is None:
@@ -19,8 +29,8 @@ def update_display_image(state: State):
     scale = min(c_width / w, c_height / h)
     new_w, new_h = int(w * scale), int(h * scale)
 
-    state.cv_image_display = cv2.resize(state.cv_image_full, (new_w, new_h), interpolation=cv2.INTER_AREA)
-
+    state.cv_image_display = render_pipeline(state)
+    state.cv_image_display = cv2.resize(state.cv_image_display, (new_w, new_h), interpolation=cv2.INTER_AREA)
     state.tk_image = cv2_to_tk(state.cv_image_display)
 
     if hasattr(state, "background_image_id"):

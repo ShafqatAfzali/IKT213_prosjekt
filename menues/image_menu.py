@@ -5,16 +5,12 @@ import numpy as np
 
 from other.helper_functions import update_display_image, scale_to_full_image_cords, canvas_to_image_cords, \
     clamp_to_image, \
-    canvas_to_image_offset, get_display_scale, full_image_cords_to_display
+    canvas_to_image_offset, get_display_scale, full_image_cords_to_display, apply_image_operation
 from other.image_rotation import rotate_90_degree_clockwise, rotate_90_degree_counter_clockwise, flip_horizontal, flip_vertical
 from classes.state import State
 
 
 def create_image_menu(state: State, menu_bar):
-    def apply_image_operation(func):
-        state.cv_image_full = func(state.cv_image_full)
-        update_display_image(state)
-
     def reset_selection():
         state.canvas.unbind("<Escape>")
         for line_id in state.selection_shape_ids:
@@ -216,7 +212,7 @@ def create_image_menu(state: State, menu_bar):
 
     menu_rotate = Menu(menu_image, tearoff=0)
     menu_rotate.add_command(label="Rotate CW",
-                            command=lambda: apply_image_operation(rotate_90_degree_clockwise))
+                            command=lambda: apply_image_operation(state, rotate_90_degree_clockwise))
     menu_rotate.add_command(label="Rotate CCW",
                             command=lambda: apply_image_operation(
                                 rotate_90_degree_counter_clockwise))

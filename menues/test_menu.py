@@ -16,7 +16,8 @@ def create_test_menu(state: State, menu_bar):
     def open_file():
         file_path = r"images/lambo.png"
         state.current_file_path = file_path
-        state.cv_image_full = cv2.imread(file_path)
+        state.original_image = cv2.imread(file_path)
+        state.cv_image_full = state.original_image.copy()
         update_display_image(state)
 
     test_menu = Menu(menu_bar, tearoff=0)
