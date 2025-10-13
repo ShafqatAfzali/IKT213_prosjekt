@@ -48,3 +48,44 @@ python main.py
 Notes: 
 Tested with Python 3.13 on Windows 10.
 Tkinter must be installed (usually included with Python).
+
+
+
+## Usage Guide
+
+1. **Start the application**  
+```bash
+python main.py
+```
+
+**Open an image**
+- Go to File → Open
+- Select an image file
+- Click open in the file browser
+
+**Basic editing**
+- Image → Select for rectangular, free-form (Lasso), or polygon selections
+  - Rectangle: click and drag
+  - Polygon: left click for each point, right click to close
+  - Lasso: click and drag, release to close
+  - Press Escape to unselect
+  - Filters apply only to the selected area (if any)
+- Image → Rotate / Flip / Crop / Resize
+- Tools → Filters to apply Gaussian, Sobel, Binary filters or Histogram thresholding 
+  - Apply to whole image or selected area
+
+**Drawing and shapes**
+- Shapes → List of Shapes select shape
+  - Click Enable Drawing to draw, Disable Drawing to stop
+- Set outline and fill colors via Shapes → Outline Color / Fill Color
+  - Note: Fill may not work correctly; colors are a work in progress
+- Use Tools → Paint Brushes for freehand edits
+- Undo/Redo: File → Undo / Redo or Ctrl+Z / Ctrl+Y
+- Colors: adjust brush size and color via Brush Size and Choose Color
+
+**Save your work**
+- File → Save overwrites the current file
+- File → Save As exports a new copy
+
+**Exit the app**
+- File → Quit

@@ -13,10 +13,6 @@ def render_pipeline(state: State):
         image = state.original_image.copy()
         start_idx = 0
 
-    if len(state.operations) >= 4:
-        cv2.imshow("", image)
-
-
     for i in range(start_idx, len(state.operations)):
         func, args, kwargs = state.operations[i]
         image = func(image, *args, **kwargs)
