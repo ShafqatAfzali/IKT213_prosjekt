@@ -21,8 +21,6 @@ def create_test_menu(state: State, menu_bar):
         state.redo_stack.clear()
         update_display_image(state)
 
-
-
     test_menu = Menu(menu_bar, tearoff=0)
     test_menu.add_command(label="Show mask", command=show_selection_mask)
     test_menu.add_command(label="Open lambo", command=open_file)

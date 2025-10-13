@@ -44,23 +44,18 @@ def create_tools_menu(state: State, menu_bar):
             state.brush_color = tuple(map(int, color))
             print("Brush color picked:", state.brush_color)
 
-    # TOD: How to turn off after use
-    counter = None
-
+    # TODO: How to turn off after use
     def start_brush():
-        global brush_active, counter
-        state.preview_mask = np.zeros_like(state.cv_image_full[:, :, 0], dtype=np.uint8)
+        global brush_active
+        state.preview_brush_mask = np.zeros_like(state.cv_image_full[:, :, 0], dtype=np.uint8)
         brush_active = True
 
         if state.canvas is not None:
             state.canvas.bind("<B1-Motion>", draw_brush)  # mouse drag
             state.canvas.bind("<ButtonRelease-1>", stop_brush)
         print("Brush mode ON")
-        counter = 0
-
 
     def draw_brush(event):
-        global counter
         if state.cv_image_full is None:
             return
 
@@ -68,7 +63,7 @@ def create_tools_menu(state: State, menu_bar):
         scaled_image_cords = display_image_cords_to_full_image(state, image_cords)
         (x, y) = scaled_image_cords[0]
 
-        cv2.circle(state.preview_mask, (x, y), state.brush_size, 255, -1)
+        cv2.circle(state.preview_brush_mask, (x, y), state.brush_size, 255, -1)
 
         update_display_image(state)
 
@@ -79,8 +74,6 @@ def create_tools_menu(state: State, menu_bar):
             state.canvas.unbind("<B1-Motion>")
         print("Brush mode OFF")
 
-
-        # store single brush operation
         def apply_brush(image, mask=None, color=None):
             result = image.copy()
             if mask is not None and color is not None:
@@ -88,8 +81,8 @@ def create_tools_menu(state: State, menu_bar):
                     result[mask == 255, c] = color[::-1][c]
             return result
 
-        state.operations.append((apply_brush, [], {"mask": state.preview_mask.copy(), "color": state.brush_color}))
-        state.preview_mask = None
+        state.operations.append((apply_brush, [], {"mask": state.preview_brush_mask.copy(), "color": state.brush_color}))
+        state.preview_brush_mask = None
         update_display_image(state)
 
 

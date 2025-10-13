@@ -3,16 +3,31 @@ from .image_conversion import cv2_to_tk
 from .cord_utils import full_image_cords_to_display_image
 from classes.state import State
 
-# TODO: Add cache_images to not go through every operation every time, will become slow
 def render_pipeline(state: State):
-    image = state.original_image.copy()
-    for func, args, kwargs in state.operations:
+    last_cache_idx = max([idx for idx in state.cached_images if idx <= len(state.operations)-1],default=-1)
+
+    if last_cache_idx >= 0:
+        image = state.cached_images[last_cache_idx].copy()
+        start_idx = last_cache_idx + 1
+    else:
+        image = state.original_image.copy()
+        start_idx = 0
+
+    if len(state.operations) >= 4:
+        cv2.imshow("", image)
+
+
+    for i in range(start_idx, len(state.operations)):
+        func, args, kwargs = state.operations[i]
         image = func(image, *args, **kwargs)
 
-    if state.preview_mask is not None:
-        mask = state.preview_mask
+        if (i+1) % 5 == 0:
+            state.cached_images[i] = image.copy()
+
+    if state.preview_brush_mask is not None:
+        mask = state.preview_brush_mask
         color = state.brush_color
-        for c in range(3):  # BGR channels
+        for c in range(3):
             image[mask == 255, c] = color[::-1][c]
 
     state.cv_image_full = image

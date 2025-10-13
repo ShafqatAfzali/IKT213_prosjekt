@@ -3,6 +3,7 @@ from tkinter import Menu, simpledialog
 import cv2
 import numpy as np
 
+from helpers.menu_utils import add_menu_command_with_hotkey
 from helpers.image_render import update_display_image
 from helpers.cord_utils import display_image_cords_to_full_image, canvas_to_image_cords, clamp_to_image, canvas_to_image_offset, get_full_to_display_image_scale, full_image_cords_to_display_image
 from helpers.image_transform import rotate_90_degree_clockwise, rotate_90_degree_counter_clockwise, flip_horizontal, flip_vertical
@@ -228,6 +229,9 @@ def create_image_menu(state: State, menu_bar):
     menu_rotate = Menu(menu_image, tearoff=0)
     menu_rotate.add_command(label="Rotate CW",
                             command=lambda: apply_image_operation(rotate_90_degree_clockwise))
+    add_menu_command_with_hotkey(state=state, menu=menu_rotate, label="Rotate CW",
+                                 command=lambda: apply_image_operation(rotate_90_degree_clockwise),
+                                 hotkey="Control+e")
     menu_rotate.add_command(label="Rotate CCW",
                             command=lambda: apply_image_operation(rotate_90_degree_counter_clockwise))
     menu_rotate.add_command(label="Flip Vertically",

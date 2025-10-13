@@ -69,18 +69,24 @@ def create_main_menu(state: State, menu_bar):
 
 
     def undo():
-        if state.operations:
-            state.redo_stack.append(state.operations.pop())
-            update_display_image(state)
+        if not state.operations:
+            return
+        op_idx = len(state.operations) - 1
+        operation = state.operations.pop()
+        state.redo_stack.append(operation)
 
-    # TODO: Add clear redo stack when making new changes
+        if op_idx in state.cached_images:
+            del state.cached_images[op_idx]
+
+        update_display_image(state)
+
     def redo():
-        if state.redo_stack:
-            state.operations.append(state.redo_stack.pop())
-            update_display_image(state)
+        if not state.redo_stack:
+            return
+        state.operations.append(state.redo_stack.pop())
+        update_display_image(state)
 
 
-    # TODO: Implement copy, paste and cut
     def copy_action():
         if state.cv_image_full:
             state.clipboard_image = state.cv_image_full.copy()

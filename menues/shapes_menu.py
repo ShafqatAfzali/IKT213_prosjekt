@@ -103,7 +103,7 @@ def create_shapes_menu(state: State, menu_bar):
                           event.x, event.y  # bottom right
                           )
 
-    # TODO: Fix, shapes move slightly when placed
+    # TODO: shapes move slightly when placed
     def finish_drawing(event):
         """Finish drawing the shape"""
         global current_shape
