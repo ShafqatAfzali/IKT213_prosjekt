@@ -3,18 +3,15 @@ from tkinter import Menu, simpledialog
 import cv2
 import numpy as np
 
-from other.helper_functions import update_display_image, scale_to_full_image_cords, canvas_to_image_cords, \
-    clamp_to_image, \
-    canvas_to_image_offset, get_display_scale, full_image_cords_to_display
-from other.image_rotation import rotate_90_degree_clockwise, rotate_90_degree_counter_clockwise, flip_horizontal, flip_vertical
+from helpers.menu_utils import add_menu_command_with_hotkey
+from helpers.image_render import update_display_image
+from helpers.cord_utils import display_image_cords_to_full_image, canvas_to_image_cords, clamp_to_image, canvas_to_image_offset, get_full_to_display_image_scale, full_image_cords_to_display_image
+from helpers.image_transform import rotate_90_degree_clockwise, rotate_90_degree_counter_clockwise, flip_horizontal, flip_vertical
 from classes.state import State
 
+# NOTE TO SELF: Tidy up
 
 def create_image_menu(state: State, menu_bar):
-    def apply_image_operation(func):
-        state.cv_image_full = func(state.cv_image_full)
-        update_display_image(state)
-
     def reset_selection():
         state.canvas.unbind("<Escape>")
         for line_id in state.selection_shape_ids:
@@ -31,6 +28,11 @@ def create_image_menu(state: State, menu_bar):
         cv2.fillPoly(mask, [pts], 255)
         return mask
 
+    def apply_image_operation(func):
+        state.operations.append((func, [], {}))
+        state.redo_stack.clear()
+        update_display_image(state)
+
 # ---------- Rectangle ----------
     def start_rectangle(event):
         reset_selection()
@@ -38,7 +40,7 @@ def create_image_menu(state: State, menu_bar):
         x,y = clamp_to_image(state, event.x, event.y)
 
         w_offset, h_offset = canvas_to_image_offset(state)
-        [(x_full, y_full)] = scale_to_full_image_cords(state, [(x-w_offset,y-h_offset)])
+        [(x_full, y_full)] = display_image_cords_to_full_image(state, [(x - w_offset, y - h_offset)])
 
         state.selection_points = [(x_full, y_full), (x_full, y_full)]
 
@@ -51,11 +53,11 @@ def create_image_menu(state: State, menu_bar):
     def update_rectangle(event):
         x,y = clamp_to_image(state, event.x, event.y)
         w_offset, h_offset = canvas_to_image_offset(state)
-        [(x_full, y_full)] = scale_to_full_image_cords(state, [(x-w_offset,y-h_offset)])
+        [(x_full, y_full)] = display_image_cords_to_full_image(state, [(x - w_offset, y - h_offset)])
 
         state.selection_points[1] = (x_full, y_full)
 
-        scale = get_display_scale(state)
+        scale = get_full_to_display_image_scale(state)
         offset_x, offset_y = canvas_to_image_offset(state)
 
         (x0_full, y0_full) = state.selection_points[0]
@@ -83,8 +85,8 @@ def create_image_menu(state: State, menu_bar):
         x, y = clamp_to_image(state, event.x, event.y)
 
         w_offset, h_offset = canvas_to_image_offset(state)
-        [(x_full, y_full)] = scale_to_full_image_cords(state, [(x - w_offset, y - h_offset)])
-        scale = get_display_scale(state)
+        [(x_full, y_full)] = display_image_cords_to_full_image(state, [(x - w_offset, y - h_offset)])
+        scale = get_full_to_display_image_scale(state)
 
         state.selection_points.append((x_full, y_full))
 
@@ -104,7 +106,7 @@ def create_image_menu(state: State, menu_bar):
             p1_full = state.selection_points[0]
             p2_full = state.selection_points[-1]
 
-            disp_cords = full_image_cords_to_display(state, {p1_full, p2_full})
+            disp_cords = full_image_cords_to_display_image(state, {p1_full, p2_full})
 
 
             line_id = state.canvas.create_line(disp_cords[1], disp_cords[0],
@@ -124,8 +126,8 @@ def create_image_menu(state: State, menu_bar):
         x, y = clamp_to_image(state, event.x, event.y)
 
         w_offset, h_offset = canvas_to_image_offset(state)
-        [(x_full, y_full)] = scale_to_full_image_cords(state, [(x - w_offset, y - h_offset)])
-        scale = get_display_scale(state)
+        [(x_full, y_full)] = display_image_cords_to_full_image(state, [(x - w_offset, y - h_offset)])
+        scale = get_full_to_display_image_scale(state)
 
         state.selection_points.append((x_full, y_full))
 
@@ -142,7 +144,7 @@ def create_image_menu(state: State, menu_bar):
         if len(state.selection_shape_ids) < 1:
             return
         mouse_pos = clamp_to_image(state, event.x, event.y)
-        [p0] = full_image_cords_to_display(state, [state.selection_points[-1]])
+        [p0] = full_image_cords_to_display_image(state, [state.selection_points[-1]])
         state.canvas.coords(state.selection_shape_ids[-1], p0, *mouse_pos)
 
     def finish_polygon(event):
@@ -151,7 +153,7 @@ def create_image_menu(state: State, menu_bar):
         state.canvas.unbind("<Motion>")
 
         if len(state.selection_points) > 2:
-            [p0, p1] = full_image_cords_to_display(state, [state.selection_points[-1], state.selection_points[0]])
+            [p0, p1] = full_image_cords_to_display_image(state, [state.selection_points[-1], state.selection_points[0]])
 
             state.canvas.coords(state.selection_shape_ids[-1], p0, p1)
 
@@ -186,23 +188,33 @@ def create_image_menu(state: State, menu_bar):
         y1, y2 = sorted((y1, y2))
 
         [(x1, y1), (x2, y2)] = canvas_to_image_cords(state, [(x1, y1), (x2, y2)])
-        [(x1, y1), (x2, y2)] = scale_to_full_image_cords(state, [(x1, y1), (x2, y2)])
+        [(x1, y1), (x2, y2)] = display_image_cords_to_full_image(state, [(x1, y1), (x2, y2)])
 
+        state.operations.append((crop_image, [x1, y1, x2, y2], {}))
+        reset_selection()
+        state.redo_stack.clear()
+        update_display_image(state)
+
+    def crop_image(image, x1, y1, x2, y2):
         cropped = state.cv_image_full[y1:y2, x1:x2]
         if cropped.size == 0:
             print("Invalid crop ")
-            return
+            return image
+        return cropped
 
-        state.cv_image_full = cropped
-        update_display_image(state)
+    def resize_image(image, new_w, new_h):
+        if new_w and new_h:
+            image = cv2.resize(image, (new_w, new_h))
+            return image
+        return image
 
-    def resize_image():
+    def apply_resize():
         h, w = state.cv_image_full.shape[:2]
         new_w = simpledialog.askinteger("Resize", "Enter new width:", initialvalue=w, minvalue=1)
         new_h = simpledialog.askinteger("Resize", "Enter new height:", initialvalue=h, minvalue=1)
-        if new_w and new_h:
-            state.cv_image_full = cv2.resize(state.cv_image_full, (new_w, new_h))
-            update_display_image(state)
+        state.operations.append((resize_image, [new_w, new_h], {}))
+        state.redo_stack.clear()
+        update_display_image(state)
 
     menu_image = Menu(menu_bar, tearoff=0)
 
@@ -211,15 +223,17 @@ def create_image_menu(state: State, menu_bar):
     menu_select.add_command(label="Lasso", command=lambda: state.canvas.bind("<Button-1>", start_lasso))
     menu_select.add_command(label="Polygon", command=lambda: start_polygon())
     menu_select.add_command(label="Crop", command=lambda: start_crop())
-    menu_select.add_command(label="Resize", command=resize_image)
+    menu_select.add_command(label="Resize", command=apply_resize)
     menu_image.add_cascade(label="Select", menu=menu_select)
 
     menu_rotate = Menu(menu_image, tearoff=0)
     menu_rotate.add_command(label="Rotate CW",
                             command=lambda: apply_image_operation(rotate_90_degree_clockwise))
+    add_menu_command_with_hotkey(state=state, menu=menu_rotate, label="Rotate CW",
+                                 command=lambda: apply_image_operation(rotate_90_degree_clockwise),
+                                 hotkey="Control+e")
     menu_rotate.add_command(label="Rotate CCW",
-                            command=lambda: apply_image_operation(
-                                rotate_90_degree_counter_clockwise))
+                            command=lambda: apply_image_operation(rotate_90_degree_counter_clockwise))
     menu_rotate.add_command(label="Flip Vertically",
                             command=lambda: apply_image_operation(flip_vertical))
     menu_rotate.add_command(label="Flip Horizontal",
