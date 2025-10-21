@@ -40,7 +40,7 @@ if __name__ == "__main__":
     create_tools_menu(state, menu_bar)
     create_shapes_menu(state, menu_bar)
     create_colors_menu(state, menu_bar)
-    #create_test_menu(state, menu_bar)
+    create_test_menu(state, menu_bar)
     main_window.config(menu=menu_bar)
 
     main_window.mainloop()

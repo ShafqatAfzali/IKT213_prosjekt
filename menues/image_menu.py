@@ -5,7 +5,8 @@ import numpy as np
 
 from helpers.menu_utils import add_menu_command_with_hotkey
 from helpers.image_render import update_display_image
-from helpers.cord_utils import display_image_cords_to_full_image, canvas_to_image_cords, clamp_to_image, canvas_to_image_offset, get_full_to_display_image_scale, full_image_cords_to_display_image
+from helpers.cord_utils import clamp_to_image, canvas_to_image_offset, \
+    get_full_to_display_image_scale, full_image_cords_to_canvas_cords, canvas_to_image_cords
 from helpers.image_transform import rotate_90_degree_clockwise, rotate_90_degree_counter_clockwise, flip_horizontal, flip_vertical
 from classes.state import State
 
@@ -39,8 +40,7 @@ def create_image_menu(state: State, menu_bar):
 
         x,y = clamp_to_image(state, event.x, event.y)
 
-        w_offset, h_offset = canvas_to_image_offset(state)
-        [(x_full, y_full)] = display_image_cords_to_full_image(state, [(x - w_offset, y - h_offset)])
+        [(x_full, y_full)] = canvas_to_image_cords(state, [(x, y)])
 
         state.selection_points = [(x_full, y_full), (x_full, y_full)]
 
@@ -52,8 +52,7 @@ def create_image_menu(state: State, menu_bar):
 
     def update_rectangle(event):
         x,y = clamp_to_image(state, event.x, event.y)
-        w_offset, h_offset = canvas_to_image_offset(state)
-        [(x_full, y_full)] = display_image_cords_to_full_image(state, [(x - w_offset, y - h_offset)])
+        [(x_full, y_full)] = canvas_to_image_cords(state, [(x, y)])
 
         state.selection_points[1] = (x_full, y_full)
 
@@ -85,7 +84,7 @@ def create_image_menu(state: State, menu_bar):
         x, y = clamp_to_image(state, event.x, event.y)
 
         w_offset, h_offset = canvas_to_image_offset(state)
-        [(x_full, y_full)] = display_image_cords_to_full_image(state, [(x - w_offset, y - h_offset)])
+        [(x_full, y_full)] = canvas_to_image_cords(state, [(x, y)])
         scale = get_full_to_display_image_scale(state)
 
         state.selection_points.append((x_full, y_full))
@@ -106,7 +105,7 @@ def create_image_menu(state: State, menu_bar):
             p1_full = state.selection_points[0]
             p2_full = state.selection_points[-1]
 
-            disp_cords = full_image_cords_to_display_image(state, {p1_full, p2_full})
+            disp_cords = full_image_cords_to_canvas_cords(state, {p1_full, p2_full})
 
 
             line_id = state.canvas.create_line(disp_cords[1], disp_cords[0],
@@ -126,7 +125,7 @@ def create_image_menu(state: State, menu_bar):
         x, y = clamp_to_image(state, event.x, event.y)
 
         w_offset, h_offset = canvas_to_image_offset(state)
-        [(x_full, y_full)] = display_image_cords_to_full_image(state, [(x - w_offset, y - h_offset)])
+        [(x_full, y_full)] = canvas_to_image_cords(state, [(x, y)])
         scale = get_full_to_display_image_scale(state)
 
         state.selection_points.append((x_full, y_full))
@@ -144,7 +143,7 @@ def create_image_menu(state: State, menu_bar):
         if len(state.selection_shape_ids) < 1:
             return
         mouse_pos = clamp_to_image(state, event.x, event.y)
-        [p0] = full_image_cords_to_display_image(state, [state.selection_points[-1]])
+        [p0] = full_image_cords_to_canvas_cords(state, [state.selection_points[-1]])
         state.canvas.coords(state.selection_shape_ids[-1], p0, *mouse_pos)
 
     def finish_polygon(event):
@@ -153,7 +152,7 @@ def create_image_menu(state: State, menu_bar):
         state.canvas.unbind("<Motion>")
 
         if len(state.selection_points) > 2:
-            [p0, p1] = full_image_cords_to_display_image(state, [state.selection_points[-1], state.selection_points[0]])
+            [p0, p1] = full_image_cords_to_canvas_cords(state, [state.selection_points[-1], state.selection_points[0]])
 
             state.canvas.coords(state.selection_shape_ids[-1], p0, p1)
 
@@ -162,6 +161,7 @@ def create_image_menu(state: State, menu_bar):
 
 
 # ---------- Crop ----------
+    # TODO: Fix crop to work with zoom, had to be redone anyways
     def start_crop():
         reset_selection()
         state.canvas.bind("<Button-1>", begin_crop)
@@ -188,7 +188,6 @@ def create_image_menu(state: State, menu_bar):
         y1, y2 = sorted((y1, y2))
 
         [(x1, y1), (x2, y2)] = canvas_to_image_cords(state, [(x1, y1), (x2, y2)])
-        [(x1, y1), (x2, y2)] = display_image_cords_to_full_image(state, [(x1, y1), (x2, y2)])
 
         state.operations.append((crop_image, [x1, y1, x2, y2], {}))
         reset_selection()

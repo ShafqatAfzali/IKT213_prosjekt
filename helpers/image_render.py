@@ -1,6 +1,7 @@
 import cv2
+
 from .image_conversion import cv2_to_tk
-from .cord_utils import full_image_cords_to_display_image
+from .cord_utils import full_image_cords_to_canvas_cords, clamp
 from classes.state import State
 
 def render_pipeline(state: State):
@@ -33,15 +34,26 @@ def update_display_image(state: State):
     if state.cv_image_full is None:
         return
 
+    image = render_pipeline(state)
+
     c_width, c_height = state.canvas.winfo_width(), state.canvas.winfo_height()
-    h, w, _ = state.cv_image_full.shape
+    h, w, _ = image.shape
 
-    scale = min(c_width / w, c_height / h)
-    new_w, new_h = int(w * scale), int(h * scale)
+    view_w = int(c_width / state.zoom)
+    view_h = int(c_height / state.zoom)
+    x0 = int(state.offset_x)
+    y0 = int(state.offset_y)
+    x1 = x0 + view_w
+    y1 = y0 + view_h
 
-    state.cv_image_display = render_pipeline(state)
-    state.cv_image_display = cv2.resize(state.cv_image_display, (new_w, new_h), interpolation=cv2.INTER_AREA)
-    state.tk_image = cv2_to_tk(state.cv_image_display)
+    zoom_crop = image[y0:y1, x0:x1]
+
+    display_w = int(zoom_crop.shape[1] * state.zoom)
+    display_h = int(zoom_crop.shape[0] * state.zoom)
+    resized_for_zoom = cv2.resize(zoom_crop, (display_w, display_h), interpolation=cv2.INTER_AREA)
+
+    state.cv_image_display = resized_for_zoom
+    state.tk_image = cv2_to_tk(resized_for_zoom)
 
     if hasattr(state, "background_image_id"):
         state.canvas.itemconfig(state.background_image_id, image=state.tk_image)
@@ -54,7 +66,7 @@ def update_display_image(state: State):
 
 
     if len(state.selection_points) >= 2 and state.selection_shape_ids:
-        disp_cords = full_image_cords_to_display_image(state, state.selection_points)
+        disp_cords = full_image_cords_to_canvas_cords(state, state.selection_points)
         disp_cords.append(disp_cords[0])
 
         for i, shape_id in enumerate(state.selection_shape_ids):

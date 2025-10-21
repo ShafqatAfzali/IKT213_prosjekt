@@ -5,30 +5,66 @@ import numpy as np
 
 from classes.state import State
 from helpers.image_render import update_display_image
-from helpers.image_conversion import cv2_to_tk
-from helpers.cord_utils import canvas_to_image_cords, display_image_cords_to_full_image
+from helpers.cord_utils import canvas_to_image_cords
+from helpers.cord_utils import clamp
 
 # Brush state
 brush_active = False
 
 
 def create_tools_menu(state: State, menu_bar):
-    # TODO: Find way to work with update_display_image auto resize and preferably move around the image
-    def zoom_in():
-        if state.cv_image_full is not None:
-            state.cv_image_full = cv2.pyrUp(state.cv_image_full)
-            state.tk_image = cv2_to_tk(state.cv_image_full)
-            state.canvas.delete("all")
-            c_width, c_height = state.canvas.winfo_width(), state.canvas.winfo_height()
-            state.canvas.create_image(c_width // 2, c_height // 2, image=state.tk_image, anchor="center")
+    def zoom(step: float = 0.25, event=None):
+        if state.cv_image_full is None:
+            return
 
-    def zoom_out():
-        if state.cv_image_full is not None:
-            state.cv_image_full = cv2.pyrDown(state.cv_image_full)
-            state.tk_image = cv2_to_tk(state.cv_image_display)
-            state.canvas.delete("all")
-            c_width, c_height = state.canvas.winfo_width(), state.canvas.winfo_height()
-            state.canvas.create_image(c_width // 2, c_height // 2, image=state.tk_image, anchor="center")
+        old_zoom = state.zoom
+        new_zoom = clamp(old_zoom + step, state.min_zoom, state.max_zoom)
+        if new_zoom == old_zoom:
+            return
+
+        c_w, c_h = state.canvas.winfo_width(), state.canvas.winfo_height()
+        # normalized zoom point
+        if event is not None:
+            nx, ny = event.x / c_w, event.y / c_h
+        else:
+            nx, ny = 0.5, 0.5
+
+        view_w_old, view_h_old = c_w / old_zoom, c_h / old_zoom
+        img_x = state.offset_x + nx * view_w_old
+        img_y = state.offset_y + ny * view_h_old
+
+        view_w_new, view_h_new = c_w / new_zoom, c_h / new_zoom
+        state.offset_x = img_x - nx * view_w_new
+        state.offset_y = img_y - ny * view_h_new
+
+        h, w, _ = state.cv_image_full.shape
+        state.offset_x = clamp(state.offset_x, 0, max(0, w - view_w_new))
+        state.offset_y = clamp(state.offset_y, 0, max(0, h - view_h_new))
+
+        state.zoom = new_zoom
+        update_display_image(state)
+
+    def start_pan(event):
+        state.pan_start = (event.x, event.y)
+
+    def do_pan(event):
+        dx = (event.x - state.pan_start[0]) / state.zoom
+        dy = (event.y - state.pan_start[1]) / state.zoom
+        state.offset_x -= int(dx)
+        state.offset_y -= int(dy)
+
+        h, w, _ = state.cv_image_full.shape
+        c_width, c_height = state.canvas.winfo_width(), state.canvas.winfo_height()
+        view_w = int(c_width / state.zoom)
+        view_h = int(c_height / state.zoom)
+
+        max_x = max(0, w - view_w)
+        max_y = max(0, h - view_h)
+        state.offset_x = max(0, min(state.offset_x, max_x))
+        state.offset_y = max(0, min(state.offset_y, max_y))
+
+        state.pan_start = (event.x, event.y)
+        update_display_image(state)
 
     # TODO: Change to remove brush lines instead of whole canvas?
     def erase():
@@ -40,9 +76,10 @@ def create_tools_menu(state: State, menu_bar):
 
     def pick_color():
         color = colorchooser.askcolor()[0]  # (R,G,B)
-        if color:
-            state.brush_color = tuple(map(int, color))
-            print("Brush color picked:", state.brush_color)
+        if not color:
+            return
+        state.brush_color = tuple(map(int, color))
+        print("Brush color picked:", state.brush_color)
 
     # TODO: How to turn off after use
     def start_brush():
@@ -60,8 +97,7 @@ def create_tools_menu(state: State, menu_bar):
             return
 
         image_cords = canvas_to_image_cords(state, [(event.x, event.y)])
-        scaled_image_cords = display_image_cords_to_full_image(state, image_cords)
-        (x, y) = scaled_image_cords[0]
+        (x, y) = image_cords[0]
 
         cv2.circle(state.preview_brush_mask, (x, y), state.brush_size, 255, -1)
 
@@ -72,6 +108,7 @@ def create_tools_menu(state: State, menu_bar):
         brush_active = False
         if state.canvas is not None:
             state.canvas.unbind("<B1-Motion>")
+            state.canvas.unbind("<ButtonRelease-1>")
         print("Brush mode OFF")
 
         def apply_brush(image, mask=None, color=None):
@@ -170,8 +207,8 @@ def create_tools_menu(state: State, menu_bar):
         return image
 
     tools_menu = tk.Menu(menu_bar, tearoff=0)
-    tools_menu.add_command(label="Zoom In", command=zoom_in)
-    tools_menu.add_command(label="Zoom Out", command=zoom_out)
+    tools_menu.add_command(label="Zoom In", command=lambda: zoom(0.25))
+    tools_menu.add_command(label="Zoom Out", command=lambda: zoom(-0.25))
     tools_menu.add_command(label="Erase", command=erase)
     tools_menu.add_command(label="Color Picker", command=pick_color)
     tools_menu.add_command(label="Paint Brush", command=start_brush)
@@ -188,3 +225,7 @@ def create_tools_menu(state: State, menu_bar):
     tools_menu.add_cascade(label="Filters", menu=filters_menu)
 
     menu_bar.add_cascade(label="Tools", menu=tools_menu)
+
+    state.canvas.bind("<MouseWheel>", lambda e: zoom(step=0.25 if e.delta > 0 else -0.25, event=e))
+    state.canvas.bind("<ButtonPress-2>", start_pan)
+    state.canvas.bind("<B2-Motion>", do_pan)

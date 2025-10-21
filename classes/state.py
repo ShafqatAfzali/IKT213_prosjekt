@@ -4,6 +4,7 @@ class State:
         self.main_window = None
         self.canvas = None
 
+        # Image references
         self.current_file_path = None
         self.original_image = None              # --- original image, don't change unless loading an image
         self.cv_image_full = None               # Image that all edits happen to
@@ -24,3 +25,11 @@ class State:
         self.brush_color = (255, 0, 0)          # Color in rgb format
 
         self.clipboard_image = None
+
+        # zoom
+        self.zoom = 1.0  # 1 = 100%
+        self.offset_x = 0
+        self.offset_y = 0
+        self.min_zoom = 0.25
+        self.max_zoom = 8.0
+        self.pan_start = None

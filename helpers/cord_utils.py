@@ -1,11 +1,9 @@
 from classes.state import State
 
+# TODO: Did it break somthing? Also remove, does basically nothing
 def get_full_to_display_image_scale(state: State):
-    """Return scale factor from full image to displayed image."""
-    h_full, w_full, _ = state.cv_image_full.shape
-    h_display, w_display, _ = state.cv_image_display.shape
-    scale = min(w_display / w_full,  h_display / h_full)
-    return scale
+    """Return the current zoom scale factor (full image → display)."""
+    return state.zoom
 
 def canvas_to_image_offset(state):
     """Return top-left offset of the image on the canvas."""
@@ -14,8 +12,7 @@ def canvas_to_image_offset(state):
     w_offset, h_offset = (c_w - w) / 2, (c_h - h) / 2
     return w_offset, h_offset
 
-def canvas_to_image_cords(state: State, cords: list):
-    """Convert canvas coordinates to image coordinates, clamped inside image."""
+def canvas_to_display_image_cords_to_be_removed(state: State, cords: list):
     w_off, h_off = canvas_to_image_offset(state)
     h, w = state.cv_image_display.shape[:2]
     return [
@@ -26,23 +23,54 @@ def canvas_to_image_cords(state: State, cords: list):
         for x, y in cords
     ]
 
+def clamp(v, lo, hi):
+    return max(lo, min(v, hi))
+
 def clamp_to_image(state, x, y):
     """Clamp a canvas coordinate to the visible image area."""
     w_off, h_off = canvas_to_image_offset(state)
     h, w = state.cv_image_display.shape[:2]
-    clamped_x = max(w_off, min(x, w_off + w))
-    clamped_y = max(h_off, min(y, h_off + h))
+    clamped_x = clamp(w_off, x, (w_off + w))
+    clamped_y = clamp(h_off, y, (h_off + h))
     return clamped_x, clamped_y
 
-def display_image_cords_to_full_image(state, cords):
-    """Convert display image coordinates to full image coordinates."""
-    h_full, w_full, _ = state.cv_image_full.shape
-    h_disp, w_disp, _ = state.cv_image_display.shape
-    scale = w_full / w_disp
-    return [(int(x * scale), int(y * scale)) for x, y in cords]
+def canvas_to_image_cords(state: State, cords: list):
+    """Convert canvas coordinates to full-image coordinates, clamped inside image."""
+    zoom = state.zoom
+    x_off, y_off = state.offset_x, state.offset_y          # image scroll/pan
+    pad_x, pad_y = canvas_to_image_offset(state)          # canvas center padding
+    h, w, _ = state.cv_image_full.shape
 
-def full_image_cords_to_display_image(state: State, coords):
-    """Convert full image coordinates to display image coordinates on canvas."""
-    scale = get_full_to_display_image_scale(state)
+    img_cords = []
+    for x, y in cords:
+        # subtract padding to get coordinates relative to displayed image
+        rel_x = x - pad_x
+        rel_y = y - pad_y
+
+        # convert to full image coords using zoom and pan
+        img_x = x_off + rel_x / zoom
+        img_y = y_off + rel_y / zoom
+
+        # clamp inside image
+        img_x = max(0, min(int(img_x), w - 1))
+        img_y = max(0, min(int(img_y), h - 1))
+        img_cords.append((img_x, img_y))
+
+    return img_cords
+
+def full_image_cords_to_canvas_cords(state: State, cords):
+    """Convert full image coordinates to canvas coordinates."""
+    scale = get_full_to_display_image_scale(state)  # full image -> displayed image
     w_off, h_off = canvas_to_image_offset(state)
-    return [(x * scale + w_off, y * scale + h_off) for x, y in coords]
+    img_x_off, img_y_off = state.offset_x, state.offset_y  # zoom/pan offsets
+
+    canvas_cords = []
+    for x, y in cords:
+        # remove zoom/pan offset, then scale
+        disp_x = (x - img_x_off) * scale
+        disp_y = (y - img_y_off) * scale
+
+        # add canvas padding
+        canvas_cords.append((disp_x + w_off, disp_y + h_off))
+
+    return canvas_cords
