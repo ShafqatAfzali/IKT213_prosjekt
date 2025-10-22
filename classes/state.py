@@ -33,3 +33,6 @@ class State:
         self.min_zoom = 0.25
         self.max_zoom = 8.0
         self.pan_start = None
+
+        self.crop_metadata = None  # dict with {'x0': ..., 'y0': ..., 'x1': ..., 'y1': ...}
+

@@ -178,28 +178,28 @@ def create_image_menu(state: State, menu_bar):
         state.selection_points[1] = clamp_to_image(state, event.x, event.y)
         state.canvas.coords(state.selection_shape_ids[0], *state.selection_points[0], *state.selection_points[1])
 
+    def apply_crop(image, x0, y0, x1, y1):
+        state.crop_metadata = {'x0': int(x0), 'y0': int(y0), 'x1': int(x1), 'y1': int(y1)}
+        return image
+
     def finish_crop(event):
         state.canvas.unbind("<B1-Motion>")
         state.canvas.unbind("<Button-1>")
         state.canvas.unbind("<ButtonRelease-1>")
 
-        (x1, y1), (x2, y2) = [clamp_to_image(state, *p) for p in state.selection_points]
-        x1, x2 = sorted((x1, x2))
-        y1, y2 = sorted((y1, y2))
+        (x0, y0), (x1, y1) = [clamp_to_image(state, *p) for p in state.selection_points]
+        x0, x1 = sorted((x0, x1))
+        y0, y1 = sorted((y0, y1))
 
-        [(x1, y1), (x2, y2)] = canvas_to_image_cords(state, [(x1, y1), (x2, y2)])
+        [(x0, y0), (x1, y1)] = canvas_to_image_cords(state, [(x0, y0), (x1, y1)])
 
-        state.operations.append((crop_image, [x1, y1, x2, y2], {}))
+        state.operations.append((apply_crop, [x0, y0, x1, y1], {}))
         reset_selection()
         state.redo_stack.clear()
         update_display_image(state)
 
-    def crop_image(image, x1, y1, x2, y2):
-        cropped = state.cv_image_full[y1:y2, x1:x2]
-        if cropped.size == 0:
-            print("Invalid crop ")
-            return image
-        return cropped
+    # TODO: Add uncrop like on samsung (20m)
+    # TODO: Fix drawing and stuff on cropped picture (20m)
 
     def resize_image(image, new_w, new_h):
         if new_w and new_h:

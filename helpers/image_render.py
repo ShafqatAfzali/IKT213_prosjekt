@@ -27,6 +27,10 @@ def render_pipeline(state: State):
         for c in range(3):
             image[mask == 255, c] = color[::-1][c]
 
+    if state.crop_metadata:
+        cm = state.crop_metadata
+        image = image[cm['y0']:cm['y1'], cm['x0']:cm['x1']]
+
     state.cv_image_full = image
     return image
 
