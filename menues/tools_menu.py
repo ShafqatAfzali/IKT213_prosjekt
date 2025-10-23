@@ -5,7 +5,7 @@ import numpy as np
 
 from classes.state import State
 from helpers.image_render import update_display_image
-from helpers.cord_utils import canvas_to_image_cords
+from helpers.cord_utils import canvas_to_full_image_cords
 from helpers.cord_utils import clamp
 
 # Brush state
@@ -13,6 +13,7 @@ brush_active = False
 
 
 def create_tools_menu(state: State, menu_bar):
+    # TODO> Make zoom work on laptop
     def zoom(step: float = 0.25, event=None):
         if state.cv_image_full is None:
             return
@@ -84,19 +85,19 @@ def create_tools_menu(state: State, menu_bar):
     # TODO: How to turn off after use
     def start_brush():
         global brush_active
-        state.preview_brush_mask = np.zeros_like(state.cv_image_full[:, :, 0], dtype=np.uint8)
+        state.preview_brush_mask = np.zeros_like(state.original_image[:, :, 0], dtype=np.uint8)
         brush_active = True
 
         if state.canvas is not None:
             state.canvas.bind("<B1-Motion>", draw_brush)  # mouse drag
-            state.canvas.bind("<ButtonRelease-1>", stop_brush)
+            state.canvas.bind("<Button-3>", stop_brush)
         print("Brush mode ON")
 
     def draw_brush(event):
         if state.cv_image_full is None:
             return
 
-        image_cords = canvas_to_image_cords(state, [(event.x, event.y)])
+        image_cords = canvas_to_full_image_cords(state, [(event.x, event.y)])
         (x, y) = image_cords[0]
 
         cv2.circle(state.preview_brush_mask, (x, y), state.brush_size, 255, -1)
@@ -108,7 +109,7 @@ def create_tools_menu(state: State, menu_bar):
         brush_active = False
         if state.canvas is not None:
             state.canvas.unbind("<B1-Motion>")
-            state.canvas.unbind("<ButtonRelease-1>")
+            state.canvas.unbind("<Button-3>")
         print("Brush mode OFF")
 
         def apply_brush(image, mask=None, color=None):

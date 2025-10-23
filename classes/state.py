@@ -6,7 +6,7 @@ class State:
 
         # Image references
         self.current_file_path = None
-        self.original_image = None              # --- original image, don't change unless loading an image
+        self.original_image = None              # CV2 original image, don't change unless loading an image
         self.cv_image_full = None               # Image that all edits happen to
         self.cached_images = {}                 # A dict with cached images for faster render pipline
         self.cv_image_display = None            # cv_image_full but resized to fit the canvas. To be swaped with w,h?
@@ -33,3 +33,6 @@ class State:
         self.min_zoom = 0.25
         self.max_zoom = 8.0
         self.pan_start = None
+
+        self.crop_metadata = None  # dict with {'x0': ..., 'y0': ..., 'x1': ..., 'y1': ...}
+

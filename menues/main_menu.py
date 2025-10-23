@@ -1,3 +1,5 @@
+import json
+import os
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
@@ -22,9 +24,11 @@ def create_main_menu(state: State, menu_bar):
             filetypes=(("Image Files", "*.jpg;*.jpeg;*.png;*.gif"), ("All Files", "*.*"))
         )
         if file_path:
+            state.preview_brush_mask = None
             state.current_file_path = file_path
             state.original_image = cv2.imread(file_path)
             state.cv_image_full = state.original_image.copy()
+            load_metadata(file_path)
             state.operations.clear()
             state.redo_stack.clear()
             update_display_image(state)
@@ -32,6 +36,7 @@ def create_main_menu(state: State, menu_bar):
     def save_file():
         if state.current_file_path and state.cv_image_full is not None:
             cv2.imwrite(state.current_file_path, state.cv_image_full)
+            save_metadata(state.current_file_path)
             messagebox.showinfo("Save", f"File saved: {state.current_file_path}")
         else:
             save_as_file()
@@ -45,7 +50,18 @@ def create_main_menu(state: State, menu_bar):
             if file_path:
                 state.current_file_path = file_path
                 cv2.imwrite(state.current_file_path, state.cv_image_full)
+                save_metadata(state.current_file_path)
                 messagebox.showinfo("Save As", f"File saved as: {file_path}")
+
+    def save_metadata(image_path):
+        meta = {'crop': state.crop_metadata}
+        with open(os.path.splitext(image_path)[0] + ".json", "w") as f:
+            json.dump(meta, f)
+
+    def load_metadata(image_path):
+        meta_path = os.path.splitext(image_path)[0] + ".json"
+        if os.path.exists(meta_path):
+            state.crop_metadata = json.load(open(meta_path)).get("crop")
 
     def show_properties():
         if state.cv_image_full is not None:
@@ -74,6 +90,9 @@ def create_main_menu(state: State, menu_bar):
         op_idx = len(state.operations) - 1
         operation = state.operations.pop()
         state.redo_stack.append(operation)
+
+        if operation[0].__name__ == "apply_crop":
+            state.crop_metadata = None
 
         if op_idx in state.cached_images:
             del state.cached_images[op_idx]
