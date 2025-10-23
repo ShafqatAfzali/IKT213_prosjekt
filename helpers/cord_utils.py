@@ -30,16 +30,23 @@ def clamp_to_image(state, x, y):
     """Clamp a canvas coordinate to the visible image area."""
     w_off, h_off = canvas_to_image_offset(state)
     h, w = state.cv_image_display.shape[:2]
-    clamped_x = clamp(w_off, x, (w_off + w))
-    clamped_y = clamp(h_off, y, (h_off + h))
+    clamped_x = clamp(x, w_off, (w_off + w))
+    clamped_y = clamp(y, h_off, (h_off + h))
     return clamped_x, clamped_y
 
-def canvas_to_image_cords(state: State, cords: list):
+def canvas_to_full_image_cords(state: State, cords: list):
     """Convert canvas coordinates to full-image coordinates, clamped inside image."""
     zoom = state.zoom
-    x_off, y_off = state.offset_x, state.offset_y          # image scroll/pan
-    pad_x, pad_y = canvas_to_image_offset(state)          # canvas center padding
-    h, w, _ = state.cv_image_full.shape
+    x_off, y_off = state.offset_x, state.offset_y
+    pad_x, pad_y = canvas_to_image_offset(state)
+
+    if state.crop_metadata:
+        crop = state.crop_metadata
+        crop_x0, crop_y0, crop_x1, crop_y1 = crop['x0'], crop['y0'], crop['x1'], crop['y1']
+    else:
+        crop_x0 = crop_y0 = 0
+        h, w, _ = state.cv_image_full.shape
+        crop_x1, crop_y1 = w, h
 
     img_cords = []
     for x, y in cords:
@@ -48,12 +55,12 @@ def canvas_to_image_cords(state: State, cords: list):
         rel_y = y - pad_y
 
         # convert to full image coords using zoom and pan
-        img_x = x_off + rel_x / zoom
-        img_y = y_off + rel_y / zoom
+        img_x = (x_off + rel_x / zoom) + crop_x0
+        img_y = (y_off + rel_y / zoom) + crop_y0
 
         # clamp inside image
-        img_x = max(0, min(int(img_x), w - 1))
-        img_y = max(0, min(int(img_y), h - 1))
+        img_x = int(clamp(img_x, 0, crop_x1))
+        img_y = int(clamp(img_y, 0, crop_y1))
         img_cords.append((img_x, img_y))
 
     return img_cords
@@ -64,11 +71,17 @@ def full_image_cords_to_canvas_cords(state: State, cords):
     w_off, h_off = canvas_to_image_offset(state)
     img_x_off, img_y_off = state.offset_x, state.offset_y  # zoom/pan offsets
 
+    if state.crop_metadata:
+        crop = state.crop_metadata
+        crop_x0, crop_y0 = crop['x0'], crop['y0']
+    else:
+        crop_x0 = crop_y0 = 0
+
     canvas_cords = []
     for x, y in cords:
         # remove zoom/pan offset, then scale
-        disp_x = (x - img_x_off) * scale
-        disp_y = (y - img_y_off) * scale
+        disp_x = (x - crop_x0 - img_x_off) * scale
+        disp_y = (y - crop_y0 - img_y_off) * scale
 
         # add canvas padding
         canvas_cords.append((disp_x + w_off, disp_y + h_off))

@@ -4,7 +4,7 @@ from .image_conversion import cv2_to_tk
 from .cord_utils import full_image_cords_to_canvas_cords, clamp
 from classes.state import State
 
-def render_pipeline(state: State):
+def render_pipeline(state: State, cropping=False):
     last_cache_idx = max([idx for idx in state.cached_images if idx <= len(state.operations)-1],default=-1)
 
     if last_cache_idx >= 0:
@@ -27,18 +27,18 @@ def render_pipeline(state: State):
         for c in range(3):
             image[mask == 255, c] = color[::-1][c]
 
-    if state.crop_metadata:
+    if not cropping and state.crop_metadata:
         cm = state.crop_metadata
         image = image[cm['y0']:cm['y1'], cm['x0']:cm['x1']]
 
     state.cv_image_full = image
     return image
 
-def update_display_image(state: State):
+def update_display_image(state: State, cropping=False):
     if state.cv_image_full is None:
         return
 
-    image = render_pipeline(state)
+    image = render_pipeline(state, cropping=cropping)
 
     c_width, c_height = state.canvas.winfo_width(), state.canvas.winfo_height()
     h, w, _ = image.shape

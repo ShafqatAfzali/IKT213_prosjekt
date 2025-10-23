@@ -5,7 +5,7 @@ import numpy as np
 
 from classes.state import State
 from helpers.image_render import update_display_image
-from helpers.cord_utils import canvas_to_image_cords
+from helpers.cord_utils import canvas_to_full_image_cords
 from helpers.cord_utils import clamp
 
 # Brush state
@@ -13,6 +13,7 @@ brush_active = False
 
 
 def create_tools_menu(state: State, menu_bar):
+    # TODO> Make zoom work on laptop
     def zoom(step: float = 0.25, event=None):
         if state.cv_image_full is None:
             return
@@ -96,7 +97,7 @@ def create_tools_menu(state: State, menu_bar):
         if state.cv_image_full is None:
             return
 
-        image_cords = canvas_to_image_cords(state, [(event.x, event.y)])
+        image_cords = canvas_to_full_image_cords(state, [(event.x, event.y)])
         (x, y) = image_cords[0]
 
         cv2.circle(state.preview_brush_mask, (x, y), state.brush_size, 255, -1)

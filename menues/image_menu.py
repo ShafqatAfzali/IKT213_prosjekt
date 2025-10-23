@@ -4,9 +4,9 @@ import cv2
 import numpy as np
 
 from helpers.menu_utils import add_menu_command_with_hotkey
-from helpers.image_render import update_display_image
+from helpers.image_render import update_display_image, render_pipeline
 from helpers.cord_utils import clamp_to_image, canvas_to_image_offset, \
-    get_full_to_display_image_scale, full_image_cords_to_canvas_cords, canvas_to_image_cords
+    get_full_to_display_image_scale, full_image_cords_to_canvas_cords, canvas_to_full_image_cords
 from helpers.image_transform import rotate_90_degree_clockwise, rotate_90_degree_counter_clockwise, flip_horizontal, flip_vertical
 from classes.state import State
 
@@ -40,7 +40,7 @@ def create_image_menu(state: State, menu_bar):
 
         x,y = clamp_to_image(state, event.x, event.y)
 
-        [(x_full, y_full)] = canvas_to_image_cords(state, [(x, y)])
+        [(x_full, y_full)] = canvas_to_full_image_cords(state, [(x, y)])
 
         state.selection_points = [(x_full, y_full), (x_full, y_full)]
 
@@ -52,7 +52,7 @@ def create_image_menu(state: State, menu_bar):
 
     def update_rectangle(event):
         x,y = clamp_to_image(state, event.x, event.y)
-        [(x_full, y_full)] = canvas_to_image_cords(state, [(x, y)])
+        [(x_full, y_full)] = canvas_to_full_image_cords(state, [(x, y)])
 
         state.selection_points[1] = (x_full, y_full)
 
@@ -84,7 +84,7 @@ def create_image_menu(state: State, menu_bar):
         x, y = clamp_to_image(state, event.x, event.y)
 
         w_offset, h_offset = canvas_to_image_offset(state)
-        [(x_full, y_full)] = canvas_to_image_cords(state, [(x, y)])
+        [(x_full, y_full)] = canvas_to_full_image_cords(state, [(x, y)])
         scale = get_full_to_display_image_scale(state)
 
         state.selection_points.append((x_full, y_full))
@@ -125,7 +125,7 @@ def create_image_menu(state: State, menu_bar):
         x, y = clamp_to_image(state, event.x, event.y)
 
         w_offset, h_offset = canvas_to_image_offset(state)
-        [(x_full, y_full)] = canvas_to_image_cords(state, [(x, y)])
+        [(x_full, y_full)] = canvas_to_full_image_cords(state, [(x, y)])
         scale = get_full_to_display_image_scale(state)
 
         state.selection_points.append((x_full, y_full))
@@ -161,45 +161,96 @@ def create_image_menu(state: State, menu_bar):
 
 
 # ---------- Crop ----------
-    # TODO: Fix crop to work with zoom, had to be redone anyways
+    # TODO: Fix drawing and stuff on cropped picture (20m)
+    # TODO: Fix crop to work with zoom, had to be redone anyways (20m)
     def start_crop():
         reset_selection()
-        state.canvas.bind("<Button-1>", begin_crop)
-        state.canvas.bind("<B1-Motion>", draw_crop_rectangle)
-        state.canvas.bind("<ButtonRelease-1>", finish_crop)
 
-    def begin_crop(event):
-        p = clamp_to_image(state, event.x, event.y)
-        state.selection_points = [p, p]
-        rect_id = state.canvas.create_rectangle(*p, *p, outline="blue", width=2)
-        state.selection_shape_ids = [rect_id]
+        if state.crop_metadata:
+            update_display_image(state, cropping=True)
+            cm = state.crop_metadata
+            [(x0, y0), (x1, y1)] = full_image_cords_to_canvas_cords(state, [(cm['x0'], cm['y0']), (cm['x1'], cm['y1'])])
+            rect_id = state.canvas.create_rectangle(x0,y0,x1,y1, outline="blue", width=2)
+            state.selection_shape_ids = [rect_id]
+            state.selection_points = [(x0,y0), (x1,y1)]
+            draw_crop_overlay()
+        else:
+            h,w,_ = state.cv_image_full.shape
+            [(x0,y0), (x1, y1)] = full_image_cords_to_canvas_cords(state, [(0, 0), (w, h)])
+            state.selection_points = [(x0,y0), (x1, y1)]
+            rect_id = state.canvas.create_rectangle((x0,y0), (x1, y1), outline="blue", width=2)
+            state.selection_shape_ids = [rect_id]
 
-    def draw_crop_rectangle(event):
-        state.selection_points[1] = clamp_to_image(state, event.x, event.y)
-        state.canvas.coords(state.selection_shape_ids[0], *state.selection_points[0], *state.selection_points[1])
+        state.canvas.bind("<Button-1>", begin_crop_drag)
+        state.canvas.bind("<B1-Motion>", move_crop_corner)
+        state.canvas.bind("<Control-q>", finish_crop_drag)
+
+    def begin_crop_drag(event):
+        x, y = event.x, event.y
+        pts = state.selection_points
+        d0 = (x - pts[0][0]) ** 2 + (y - pts[0][1]) ** 2
+        d1 = (x - pts[1][0]) ** 2 + (y - pts[1][1]) ** 2
+        state.active_corner = 0 if d0 < d1 else 1
+
+    def draw_crop_overlay():
+        """Draws a dark transparent overlay outside the current crop rectangle."""
+        state.canvas.delete("crop_overlay")
+
+        if not state.selection_points:
+            return
+
+        (x0, y0), (x1, y1) = state.selection_points
+        c_width = state.canvas.winfo_width()
+        c_height = state.canvas.winfo_height()
+
+        # Four rectangles around the crop area
+        rects = [
+            (0, 0, c_width, y0),  # top
+            (0, y0, x0, y1),  # left
+            (x1, y0, c_width, y1),  # right
+            (0, y1, c_width, c_height)  # bottom
+        ]
+
+        for (x0_, y0_, x1_, y1_) in rects:
+            state.canvas.create_rectangle(
+                x0_, y0_, x1_, y1_,
+                fill="black",
+                stipple="gray25",  # makes it semi-transparent
+                width=0,
+                tags="crop_overlay"
+            )
+
+        # Keep overlay below crop rectangle
+        if state.selection_shape_ids:
+            state.canvas.tag_raise(state.selection_shape_ids[0])
+
+    def move_crop_corner(event):
+        if hasattr(state, "active_corner"):
+            pts = list(state.selection_points)
+            pts[state.active_corner] = clamp_to_image(state, event.x, event.y)
+            state.selection_points = pts
+            state.canvas.coords(state.selection_shape_ids[0],*pts[0], *pts[1])
+            draw_crop_overlay()
+
+    def finish_crop_drag(event):
+        if not state.selection_points:
+            return
+
+        (x0, y0), (x1, y1) = canvas_to_full_image_cords(state, state.selection_points)
+        x0, x1 = sorted((x0, x1))
+        y0, y1 = sorted((y0, y1))
+
+        state.operations.append((apply_crop, [x0, y0, x1, y1], {}))
+        state.canvas.delete("crop_overlay")
+        state.canvas.unbind("<Button-1>")
+        state.canvas.unbind("<B1-Motion>")
+        state.canvas.unbind("<ButtonRelease-1>")
+        reset_selection()
+        update_display_image(state)
 
     def apply_crop(image, x0, y0, x1, y1):
         state.crop_metadata = {'x0': int(x0), 'y0': int(y0), 'x1': int(x1), 'y1': int(y1)}
         return image
-
-    def finish_crop(event):
-        state.canvas.unbind("<B1-Motion>")
-        state.canvas.unbind("<Button-1>")
-        state.canvas.unbind("<ButtonRelease-1>")
-
-        (x0, y0), (x1, y1) = [clamp_to_image(state, *p) for p in state.selection_points]
-        x0, x1 = sorted((x0, x1))
-        y0, y1 = sorted((y0, y1))
-
-        [(x0, y0), (x1, y1)] = canvas_to_image_cords(state, [(x0, y0), (x1, y1)])
-
-        state.operations.append((apply_crop, [x0, y0, x1, y1], {}))
-        reset_selection()
-        state.redo_stack.clear()
-        update_display_image(state)
-
-    # TODO: Add uncrop like on samsung (20m)
-    # TODO: Fix drawing and stuff on cropped picture (20m)
 
     def resize_image(image, new_w, new_h):
         if new_w and new_h:
