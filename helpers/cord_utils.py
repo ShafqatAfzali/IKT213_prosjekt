@@ -34,13 +34,13 @@ def clamp_to_image(state, x, y):
     clamped_y = clamp(y, h_off, (h_off + h))
     return clamped_x, clamped_y
 
-def canvas_to_full_image_cords(state: State, cords: list):
+def canvas_to_full_image_cords(state: State, cords: list, cropping=False):
     """Convert canvas coordinates to full-image coordinates, clamped inside image."""
     zoom = state.zoom
     x_off, y_off = state.offset_x, state.offset_y
     pad_x, pad_y = canvas_to_image_offset(state)
 
-    if state.crop_metadata:
+    if not cropping and state.crop_metadata:
         crop = state.crop_metadata
         crop_x0, crop_y0, crop_x1, crop_y1 = crop['x0'], crop['y0'], crop['x1'], crop['y1']
     else:
@@ -65,13 +65,13 @@ def canvas_to_full_image_cords(state: State, cords: list):
 
     return img_cords
 
-def full_image_cords_to_canvas_cords(state: State, cords):
+def full_image_cords_to_canvas_cords(state: State, cords, crop_data=False):
     """Convert full image coordinates to canvas coordinates."""
     scale = get_full_to_display_image_scale(state)  # full image -> displayed image
     w_off, h_off = canvas_to_image_offset(state)
     img_x_off, img_y_off = state.offset_x, state.offset_y  # zoom/pan offsets
 
-    if state.crop_metadata:
+    if not crop_data and state.crop_metadata:
         crop = state.crop_metadata
         crop_x0, crop_y0 = crop['x0'], crop['y0']
     else:

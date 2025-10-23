@@ -24,6 +24,7 @@ def create_main_menu(state: State, menu_bar):
             filetypes=(("Image Files", "*.jpg;*.jpeg;*.png;*.gif"), ("All Files", "*.*"))
         )
         if file_path:
+            state.preview_brush_mask = None
             state.current_file_path = file_path
             state.original_image = cv2.imread(file_path)
             state.cv_image_full = state.original_image.copy()
