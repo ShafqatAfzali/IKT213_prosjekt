@@ -93,6 +93,20 @@ def create_main_menu(state: State, menu_bar):
 
         if operation[0].__name__ == "apply_crop":
             state.crop_metadata = None
+        elif operation[0].__name__ == "adjust_brightness":
+            prev_value = 0
+            for op in reversed(state.operations):
+                if op[0].__name__ == "adjust_brightness":
+                    prev_value = op[1][0]
+                    break
+            state.brightness_value = prev_value
+        elif operation[0].__name__ == "adjust_contrast":
+            prev_value = 0
+            for op in reversed(state.operations):
+                if op[0].__name__ == "adjust_contrast":
+                    prev_value = op[1][0]
+                    break
+            state.contrast_value = prev_value
 
         if op_idx in state.cached_images:
             del state.cached_images[op_idx]
