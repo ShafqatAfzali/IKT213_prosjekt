@@ -36,3 +36,4 @@ class State:
 
         self.crop_metadata = None  # dict with {'x0': ..., 'y0': ..., 'x1': ..., 'y1': ...}
 
+        self.brightness_value = 0
