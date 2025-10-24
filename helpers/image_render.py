@@ -31,14 +31,20 @@ def render_pipeline(state: State, cropping=False):
         cm = state.crop_metadata
         image = image[cm['y0']:cm['y1'], cm['x0']:cm['x1']]
 
+    if state.brightness_value != 0:
+        image = cv2.convertScaleAbs(image, alpha=1, beta=state.brightness_value)
+
     state.cv_image_full = image
     return image
 
-def update_display_image(state: State, cropping=False):
+def update_display_image(state: State, cropping=False, new_image=False):
     if state.cv_image_full is None:
         return
 
-    image = render_pipeline(state, cropping=cropping)
+    if not new_image:
+        image = render_pipeline(state, cropping=cropping)
+    else:
+        image = state.original_image.copy()
 
     c_width, c_height = state.canvas.winfo_width(), state.canvas.winfo_height()
     h, w, _ = image.shape

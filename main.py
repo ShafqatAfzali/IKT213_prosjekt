@@ -1,6 +1,7 @@
 import sys
 import os
 
+from menues.adjustment_menu import create_adjustment_menu
 from menues.test_menu import create_test_menu
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -40,6 +41,7 @@ if __name__ == "__main__":
     create_tools_menu(state, menu_bar)
     create_shapes_menu(state, menu_bar)
     create_colors_menu(state, menu_bar)
+    create_adjustment_menu(state, menu_bar)
     create_test_menu(state, menu_bar)
     main_window.config(menu=menu_bar)
 

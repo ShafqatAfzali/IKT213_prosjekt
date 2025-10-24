@@ -31,7 +31,7 @@ def create_main_menu(state: State, menu_bar):
             load_metadata(file_path)
             state.operations.clear()
             state.redo_stack.clear()
-            update_display_image(state)
+            update_display_image(state, new_image=True)
 
     def save_file():
         if state.current_file_path and state.cv_image_full is not None:

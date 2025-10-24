@@ -144,6 +144,7 @@ def create_image_menu(state: State, menu_bar):
 
 
 # ---------- Crop ----------
+    # TODO: Store crop points as full_image coordinates, wil fix zoom and crop issues
     def start_crop():
         reset_selection()
 
