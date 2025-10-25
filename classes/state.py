@@ -34,16 +34,15 @@ class State:
         self.max_zoom = 8.0
         self.pan_start = None
 
+        self.cropping = False
         self.crop_metadata = None  # dict with {'x0': ..., 'y0': ..., 'x1': ..., 'y1': ...}
 
         self.preview_adjust = False
-        self.preview_brightness_value = 0
-        self.brightness_value = 0
-        self.preview_contrast_value = 1.0
-        self.contrast_value = 1.0
-        self.preview_saturation_value = 1.0
-        self.saturation_value = 1.0
-        self.preview_exposure_value = 1.0
-        self.exposure_value = 1.0
-        self.preview_white_balance_value = 0
-        self.white_balance_value = 0
+        self.adjustment_values = { # dict for adjustment values
+            "brightness": 0,
+            "contrast": 1.0,
+            "saturation": 1.0,
+            "exposure": 1.0,
+            "white_balance": 0,
+        }
+        self.preview_values = self.adjustment_values.copy()     # dict for preview adjustment values

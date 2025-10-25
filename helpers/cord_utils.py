@@ -65,13 +65,16 @@ def canvas_to_full_image_cords(state: State, cords: list, cropping=False):
 
     return img_cords
 
-def full_image_cords_to_canvas_cords(state: State, cords, crop_data=False):
-    """Convert full image coordinates to canvas coordinates."""
+def full_image_cords_to_canvas_cords(state: State, cords, cropping=False):
+    """
+    Convert full image coordinates to canvas coordinates.
+
+    """
     scale = get_full_to_display_image_scale(state)  # full image -> displayed image
     w_off, h_off = canvas_to_image_offset(state)
     img_x_off, img_y_off = state.offset_x, state.offset_y  # zoom/pan offsets
 
-    if not crop_data and state.crop_metadata:
+    if not cropping and state.crop_metadata:
         crop = state.crop_metadata
         crop_x0, crop_y0 = crop['x0'], crop['y0']
     else:

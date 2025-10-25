@@ -90,23 +90,23 @@ def create_main_menu(state: State, menu_bar):
         op_idx = len(state.operations) - 1
         operation = state.operations.pop()
         state.redo_stack.append(operation)
+        func_name = operation[0].__name__
 
-        if operation[0].__name__ == "apply_crop":
+        if func_name == "apply_crop":
             state.crop_metadata = None
-        elif operation[0].__name__ == "adjust_brightness":
-            prev_value = 0
+        elif func_name == "set_adjustment_value":
+            key = operation[1][1]
+            prev_value = None
             for op in reversed(state.operations):
-                if op[0].__name__ == "adjust_brightness":
+                if op[0].__name__ == func_name:
                     prev_value = op[1][0]
                     break
-            state.brightness_value = prev_value
-        elif operation[0].__name__ == "adjust_contrast":
-            prev_value = 0
-            for op in reversed(state.operations):
-                if op[0].__name__ == "adjust_contrast":
-                    prev_value = op[1][0]
-                    break
-            state.contrast_value = prev_value
+
+            if prev_value is None:
+                prev_value = 0 if key in ("brightness","white_balance") else 1
+
+            state.adjustment_values[key] = prev_value
+
 
         if op_idx in state.cached_images:
             del state.cached_images[op_idx]

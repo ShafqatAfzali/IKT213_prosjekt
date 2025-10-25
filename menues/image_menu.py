@@ -147,21 +147,25 @@ def create_image_menu(state: State, menu_bar):
     # TODO: Store crop points as full_image coordinates, wil fix zoom and crop issues
     def start_crop():
         reset_selection()
-
+        state.cropping = True
         if state.crop_metadata:
-            update_display_image(state, cropping=True)
             cm = state.crop_metadata
-            [(x0, y0), (x1, y1)] = full_image_cords_to_canvas_cords(state, [(cm['x0'], cm['y0']), (cm['x1'], cm['y1'])], crop_data=True)
+            x0_full, y0_full, x1_full, y1_full = cm['x0'], cm['y0'], cm['x1'], cm['y1']
+            update_display_image(state, cropping=True)
+            state.selection_points = [(x0_full,y0_full), (x1_full,y1_full)]
+            [(x0, y0), (x1, y1)] = full_image_cords_to_canvas_cords(state, [(x0_full, y0_full), (x1_full, y1_full)], cropping=True)
             rect_id = state.canvas.create_rectangle(x0,y0,x1,y1, outline="blue", width=2)
             state.selection_shape_ids = [rect_id]
-            state.selection_points = [(x0,y0), (x1,y1)]
             draw_crop_overlay()
         else:
             h,w,_ = state.cv_image_full.shape
-            [(x0,y0), (x1, y1)] = full_image_cords_to_canvas_cords(state, [(0, 0), (w, h)])
-            state.selection_points = [(x0,y0), (x1, y1)]
-            rect_id = state.canvas.create_rectangle((x0,y0), (x1, y1), outline="blue", width=2)
+            x0_full, y0_full = 0,0
+            x1_full, y1_full = w,h
+            state.selection_points = [(x0_full,y0_full), (x1_full, y1_full)]
+            [(x0_can,y0_can), (x1_can, y1_can)] = full_image_cords_to_canvas_cords(state, [(0, 0), (w, h)])
+            rect_id = state.canvas.create_rectangle((x0_can,y0_can), (x1_can, y1_can), outline="blue", width=2)
             state.selection_shape_ids = [rect_id]
+
 
         state.canvas.bind("<Button-1>", begin_crop_drag)
         state.canvas.bind("<B1-Motion>", move_crop_corner)
@@ -181,16 +185,19 @@ def create_image_menu(state: State, menu_bar):
         if not state.selection_points:
             return
 
-        (x0, y0), (x1, y1) = state.selection_points
+        (x0_full, y0_full), (x1_full, y1_full) = state.selection_points
+        (x0_can, y0_can), (x1_can, y1_can) = (
+            full_image_cords_to_canvas_cords(state, [(x0_full, y0_full), (x1_full, y1_full)], cropping=True))
+        print(f"1.{x0_can=}\t{y0_can=}\t{x1_can=}\t{y1_can=}")
         c_width = state.canvas.winfo_width()
         c_height = state.canvas.winfo_height()
 
         # Four rectangles around the crop area
         rects = [
-            (0, 0, c_width, y0),  # top
-            (0, y0, x0, y1),  # left
-            (x1, y0, c_width, y1),  # right
-            (0, y1, c_width, c_height)  # bottom
+            (0, 0, c_width, y0_can),  # top
+            (0, y0_can, x0_can, y1_can),  # left
+            (x1_can, y0_can, c_width, y1_can),  # right
+            (0, y1_can, c_width, c_height)  # bottom
         ]
 
         for (x0_, y0_, x1_, y1_) in rects:
@@ -202,26 +209,27 @@ def create_image_menu(state: State, menu_bar):
                 tags="crop_overlay"
             )
 
-        # Keep overlay below crop rectangle
         if state.selection_shape_ids:
             state.canvas.tag_raise(state.selection_shape_ids[0])
 
     def move_crop_corner(event):
         if hasattr(state, "active_corner"):
-            pts = list(state.selection_points)
-            pts[state.active_corner] = clamp_to_image(state, event.x, event.y)
-            state.selection_points = pts
-            state.canvas.coords(state.selection_shape_ids[0],*pts[0], *pts[1])
+            pts_can = full_image_cords_to_canvas_cords(state, state.selection_points, cropping=True)
+            print(f"{pts_can=}")
+            pts_can[state.active_corner] = clamp_to_image(state, event.x, event.y)
+            state.selection_points = canvas_to_full_image_cords(state, pts_can, cropping=True)
+            state.canvas.coords(state.selection_shape_ids[0],*pts_can[0], *pts_can[1])
             draw_crop_overlay()
 
     def finish_crop_drag(event):
         if not state.selection_points:
             return
-        (x0, y0), (x1, y1) = canvas_to_full_image_cords(state, state.selection_points, cropping=True)
+        (x0, y0), (x1, y1) = state.selection_points
         x0, x1 = sorted((x0, x1))
         y0, y1 = sorted((y0, y1))
 
         state.operations.append((apply_crop, [x0, y0, x1, y1], {}))
+        state.cropping = False
         state.canvas.delete("crop_overlay")
         state.canvas.unbind("<Button-1>")
         state.canvas.unbind("<B1-Motion>")
