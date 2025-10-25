@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import colorchooser, simpledialog
 from helpers.image_render import update_display_image
-from helpers.cord_utils import canvas_to_display_image_cords_to_be_removed
+from helpers.cord_utils import canvas_to_full_image_cords
 
 import cv2
 import numpy as np
@@ -114,7 +114,7 @@ def create_shapes_menu(state: State, menu_bar):
 
         # get final coordinates from canvas
         coords = state.canvas.coords(current_shape)
-        [(x1, y1), (x2, y2)] = canvas_to_display_image_cords_to_be_removed(state, [(coords[0], coords[1]), (coords[2], coords[3])])
+        [(x1, y1), (x2, y2)] = canvas_to_full_image_cords(state, [(coords[0], coords[1]), (coords[2], coords[3])])
         coords = [x1,y1,x2,y2]
 
         def color_to_bgr(color):

@@ -17,8 +17,8 @@ class State:
 
         self.preview_brush_mask = None          # Used to store mask for previewing brushstrokes before adding to operations
 
-        self.selection_points = []              # List of points used for making selection mask, saved as coordinates on cv_image_full
-        self.selection_shape_ids = []           # shape_id of all the lines making up the selection area
+        self.shape_points = []                  # List of points used for making selection mask, saved as coordinates on cv_image_full
+        self.shape_ids = []                     # shape_id of all the lines making up the selection area
         self.selection_mask = None              # A black white mask with a white area corresponding to the selection area
 
         self.brush_size = 5

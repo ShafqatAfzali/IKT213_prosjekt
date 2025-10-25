@@ -14,10 +14,10 @@ from classes.state import State
 def create_image_menu(state: State, menu_bar):
     def reset_selection():
         state.canvas.unbind("<Escape>")
-        for line_id in state.selection_shape_ids:
+        for line_id in state.shape_ids:
             state.canvas.delete(line_id)
-        state.selection_points.clear()
-        state.selection_shape_ids.clear()
+        state.shape_points.clear()
+        state.shape_ids.clear()
         state.selection_mask = None
 
     def create_mask_from_points(points):
@@ -41,10 +41,10 @@ def create_image_menu(state: State, menu_bar):
 
         [(x_full, y_full)] = canvas_to_full_image_cords(state, [(x, y)])
 
-        state.selection_points = [(x_full, y_full), (x_full, y_full)]
+        state.shape_points = [(x_full, y_full), (x_full, y_full)]
 
         rect_id = state.canvas.create_rectangle((x,y), (x,y), outline="red", width=2)
-        state.selection_shape_ids = [rect_id]
+        state.shape_ids = [rect_id]
 
         state.canvas.bind("<B1-Motion>", update_rectangle)
         state.canvas.bind("<ButtonRelease-1>", finish_rectangle)
@@ -53,16 +53,16 @@ def create_image_menu(state: State, menu_bar):
         x,y = clamp_to_image(state, event.x, event.y)
         [(x_full, y_full)] = canvas_to_full_image_cords(state, [(x, y)])
 
-        state.selection_points[1] = (x_full, y_full)
+        state.shape_points[1] = (x_full, y_full)
 
-        [(x0_disp, y0_disp)] = full_image_cords_to_canvas_cords(state, [state.selection_points[0]])
+        [(x0_disp, y0_disp)] = full_image_cords_to_canvas_cords(state, [state.shape_points[0]])
 
-        state.canvas.coords(state.selection_shape_ids[0],x0_disp, y0_disp, x, y)
+        state.canvas.coords(state.shape_ids[0], x0_disp, y0_disp, x, y)
     def finish_rectangle(event):
         state.canvas.unbind("<Button-1>")
         state.canvas.unbind("<B1-Motion>")
         state.canvas.unbind("<ButtonRelease-1>")
-        p1, p2 = state.selection_points
+        p1, p2 = state.shape_points
         # create mask with a point in each of the 4 corners of the rectangle
         state.selection_mask = create_mask_from_points([(p1[0], p1[1]), (p2[0], p1[1]), (p2[0], p2[1]), (p1[0], p2[1])])
         state.canvas.bind("<Escape>", lambda _: reset_selection())
@@ -78,29 +78,29 @@ def create_image_menu(state: State, menu_bar):
 
         [(x_full, y_full)] = canvas_to_full_image_cords(state, [(x, y)])
 
-        state.selection_points.append((x_full, y_full))
+        state.shape_points.append((x_full, y_full))
 
-        if len(state.selection_points) > 1:
-            [(x0_disp, y0_disp)] = full_image_cords_to_canvas_cords(state, [state.selection_points[-2]])
+        if len(state.shape_points) > 1:
+            [(x0_disp, y0_disp)] = full_image_cords_to_canvas_cords(state, [state.shape_points[-2]])
 
             line_id = state.canvas.create_line((x0_disp, y0_disp), (x,y), fill="red",
                                                width=2)
-            state.selection_shape_ids.append(line_id)
+            state.shape_ids.append(line_id)
 
     def finish_lasso(event):
         state.canvas.unbind("<B1-Motion>")
         state.canvas.unbind("<ButtonRelease-1>")
-        if len(state.selection_points) > 2:
-            p1_full = state.selection_points[0]
-            p2_full = state.selection_points[-1]
+        if len(state.shape_points) > 2:
+            p1_full = state.shape_points[0]
+            p2_full = state.shape_points[-1]
 
             disp_cords = full_image_cords_to_canvas_cords(state, {p1_full, p2_full})
 
 
             line_id = state.canvas.create_line(disp_cords[1], disp_cords[0],
                 fill="red", width=2)
-            state.selection_shape_ids.append(line_id)
-        state.selection_mask = create_mask_from_points(state.selection_points)
+            state.shape_ids.append(line_id)
+        state.selection_mask = create_mask_from_points(state.shape_points)
         state.canvas.bind("<Escape>", lambda _: reset_selection())
 
 # ---------- Polygon ----------
@@ -114,32 +114,32 @@ def create_image_menu(state: State, menu_bar):
         x, y = clamp_to_image(state, event.x, event.y)
 
         [(x_full, y_full)] = canvas_to_full_image_cords(state, [(x, y)])
-        state.selection_points.append((x_full, y_full))
+        state.shape_points.append((x_full, y_full))
 
-        if len(state.selection_points) > 1:
-            [(x0_disp, y0_disp)] = full_image_cords_to_canvas_cords(state, [state.selection_points[-2]])
-            state.canvas.coords(state.selection_shape_ids[-1], (x0_disp, y0_disp), (x,y))
+        if len(state.shape_points) > 1:
+            [(x0_disp, y0_disp)] = full_image_cords_to_canvas_cords(state, [state.shape_points[-2]])
+            state.canvas.coords(state.shape_ids[-1], (x0_disp, y0_disp), (x, y))
         line_id = state.canvas.create_line((x,y), (x,y), fill="red", width=2)
-        state.selection_shape_ids.append(line_id)
+        state.shape_ids.append(line_id)
 
     def update_polygon(event):
-        if len(state.selection_shape_ids) < 1:
+        if len(state.shape_ids) < 1:
             return
         mouse_pos = clamp_to_image(state, event.x, event.y)
-        [p0] = full_image_cords_to_canvas_cords(state, [state.selection_points[-1]])
-        state.canvas.coords(state.selection_shape_ids[-1], p0, *mouse_pos)
+        [p0] = full_image_cords_to_canvas_cords(state, [state.shape_points[-1]])
+        state.canvas.coords(state.shape_ids[-1], p0, *mouse_pos)
 
     def finish_polygon(event):
         state.canvas.unbind("<Button-1>")
         state.canvas.unbind("<Button-3>")
         state.canvas.unbind("<Motion>")
 
-        if len(state.selection_points) > 2:
-            [p0, p1] = full_image_cords_to_canvas_cords(state, [state.selection_points[-1], state.selection_points[0]])
+        if len(state.shape_points) > 2:
+            [p0, p1] = full_image_cords_to_canvas_cords(state, [state.shape_points[-1], state.shape_points[0]])
 
-            state.canvas.coords(state.selection_shape_ids[-1], p0, p1)
+            state.canvas.coords(state.shape_ids[-1], p0, p1)
 
-        state.selection_mask = create_mask_from_points(state.selection_points)
+        state.selection_mask = create_mask_from_points(state.shape_points)
         state.canvas.bind("<Escape>", lambda _: reset_selection())
 
 
@@ -152,19 +152,19 @@ def create_image_menu(state: State, menu_bar):
             cm = state.crop_metadata
             x0_full, y0_full, x1_full, y1_full = cm['x0'], cm['y0'], cm['x1'], cm['y1']
             update_display_image(state, cropping=True)
-            state.selection_points = [(x0_full,y0_full), (x1_full,y1_full)]
+            state.shape_points = [(x0_full, y0_full), (x1_full, y1_full)]
             [(x0, y0), (x1, y1)] = full_image_cords_to_canvas_cords(state, [(x0_full, y0_full), (x1_full, y1_full)], cropping=True)
             rect_id = state.canvas.create_rectangle(x0,y0,x1,y1, outline="blue", width=2)
-            state.selection_shape_ids = [rect_id]
+            state.shape_ids = [rect_id]
             draw_crop_overlay()
         else:
             h,w,_ = state.cv_image_full.shape
             x0_full, y0_full = 0,0
             x1_full, y1_full = w,h
-            state.selection_points = [(x0_full,y0_full), (x1_full, y1_full)]
+            state.shape_points = [(x0_full, y0_full), (x1_full, y1_full)]
             [(x0_can,y0_can), (x1_can, y1_can)] = full_image_cords_to_canvas_cords(state, [(0, 0), (w, h)])
             rect_id = state.canvas.create_rectangle((x0_can,y0_can), (x1_can, y1_can), outline="blue", width=2)
-            state.selection_shape_ids = [rect_id]
+            state.shape_ids = [rect_id]
 
 
         state.canvas.bind("<Button-1>", begin_crop_drag)
@@ -173,7 +173,7 @@ def create_image_menu(state: State, menu_bar):
 
     def begin_crop_drag(event):
         x, y = event.x, event.y
-        pts = state.selection_points
+        pts = state.shape_points
         d0 = (x - pts[0][0]) ** 2 + (y - pts[0][1]) ** 2
         d1 = (x - pts[1][0]) ** 2 + (y - pts[1][1]) ** 2
         state.active_corner = 0 if d0 < d1 else 1
@@ -182,10 +182,10 @@ def create_image_menu(state: State, menu_bar):
         """Draws a dark transparent overlay outside the current crop rectangle."""
         state.canvas.delete("crop_overlay")
 
-        if not state.selection_points:
+        if not state.shape_points:
             return
 
-        (x0_full, y0_full), (x1_full, y1_full) = state.selection_points
+        (x0_full, y0_full), (x1_full, y1_full) = state.shape_points
         (x0_can, y0_can), (x1_can, y1_can) = (
             full_image_cords_to_canvas_cords(state, [(x0_full, y0_full), (x1_full, y1_full)], cropping=True))
         print(f"1.{x0_can=}\t{y0_can=}\t{x1_can=}\t{y1_can=}")
@@ -209,22 +209,22 @@ def create_image_menu(state: State, menu_bar):
                 tags="crop_overlay"
             )
 
-        if state.selection_shape_ids:
-            state.canvas.tag_raise(state.selection_shape_ids[0])
+        if state.shape_ids:
+            state.canvas.tag_raise(state.shape_ids[0])
 
     def move_crop_corner(event):
         if hasattr(state, "active_corner"):
-            pts_can = full_image_cords_to_canvas_cords(state, state.selection_points, cropping=True)
+            pts_can = full_image_cords_to_canvas_cords(state, state.shape_points, cropping=True)
             print(f"{pts_can=}")
             pts_can[state.active_corner] = clamp_to_image(state, event.x, event.y)
-            state.selection_points = canvas_to_full_image_cords(state, pts_can, cropping=True)
-            state.canvas.coords(state.selection_shape_ids[0],*pts_can[0], *pts_can[1])
+            state.shape_points = canvas_to_full_image_cords(state, pts_can, cropping=True)
+            state.canvas.coords(state.shape_ids[0], *pts_can[0], *pts_can[1])
             draw_crop_overlay()
 
     def finish_crop_drag(event):
-        if not state.selection_points:
+        if not state.shape_points:
             return
-        (x0, y0), (x1, y1) = state.selection_points
+        (x0, y0), (x1, y1) = state.shape_points
         x0, x1 = sorted((x0, x1))
         y0, y1 = sorted((y0, y1))
 
