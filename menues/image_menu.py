@@ -6,7 +6,6 @@ import numpy as np
 from helpers.menu_utils import add_menu_command_with_hotkey
 from helpers.image_render import update_display_image
 from helpers.cord_utils import clamp_to_image, full_image_cords_to_canvas_cords, canvas_to_full_image_cords
-from helpers.image_transform import rotate_90_degree_clockwise, rotate_90_degree_counter_clockwise, flip_horizontal, flip_vertical
 from classes.state import State
 
 # NOTE TO SELF: Tidy up
@@ -27,6 +26,22 @@ def create_image_menu(state: State, menu_bar):
         mask = np.zeros(state.original_image.shape[:2], dtype=np.uint8)
         cv2.fillPoly(mask, [pts], 255)
         return mask
+
+    def rotate_90_degree_clockwise(image):
+        rotated = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+        return rotated
+
+    def rotate_90_degree_counter_clockwise(image):
+        rotated = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        return rotated
+
+    def flip_vertical(image):
+        flipped = cv2.flip(image, 0)
+        return flipped
+
+    def flip_horizontal(image):
+        flipped = cv2.flip(image, 1)
+        return flipped
 
     def apply_image_operation(func):
         state.operations.append((func, [], {}))
@@ -94,7 +109,7 @@ def create_image_menu(state: State, menu_bar):
             p1_full = state.shape_points[0]
             p2_full = state.shape_points[-1]
 
-            disp_cords = full_image_cords_to_canvas_cords(state, {p1_full, p2_full})
+            disp_cords = full_image_cords_to_canvas_cords(state, [(p1_full, p2_full)])
 
 
             line_id = state.canvas.create_line(disp_cords[1], disp_cords[0],
@@ -151,9 +166,9 @@ def create_image_menu(state: State, menu_bar):
         if state.crop_metadata:
             cm = state.crop_metadata
             x0_full, y0_full, x1_full, y1_full = cm['x0'], cm['y0'], cm['x1'], cm['y1']
-            update_display_image(state, cropping=True)
+            update_display_image(state)
             state.shape_points = [(x0_full, y0_full), (x1_full, y1_full)]
-            [(x0, y0), (x1, y1)] = full_image_cords_to_canvas_cords(state, [(x0_full, y0_full), (x1_full, y1_full)], cropping=True)
+            [(x0, y0), (x1, y1)] = full_image_cords_to_canvas_cords(state, [(x0_full, y0_full), (x1_full, y1_full)])
             rect_id = state.canvas.create_rectangle(x0,y0,x1,y1, outline="blue", width=2)
             state.shape_ids = [rect_id]
             draw_crop_overlay()
@@ -187,8 +202,7 @@ def create_image_menu(state: State, menu_bar):
 
         (x0_full, y0_full), (x1_full, y1_full) = state.shape_points
         (x0_can, y0_can), (x1_can, y1_can) = (
-            full_image_cords_to_canvas_cords(state, [(x0_full, y0_full), (x1_full, y1_full)], cropping=True))
-        print(f"1.{x0_can=}\t{y0_can=}\t{x1_can=}\t{y1_can=}")
+            full_image_cords_to_canvas_cords(state, [(x0_full, y0_full), (x1_full, y1_full)]))
         c_width = state.canvas.winfo_width()
         c_height = state.canvas.winfo_height()
 
@@ -214,10 +228,9 @@ def create_image_menu(state: State, menu_bar):
 
     def move_crop_corner(event):
         if hasattr(state, "active_corner"):
-            pts_can = full_image_cords_to_canvas_cords(state, state.shape_points, cropping=True)
-            print(f"{pts_can=}")
+            pts_can = full_image_cords_to_canvas_cords(state, state.shape_points)
             pts_can[state.active_corner] = clamp_to_image(state, event.x, event.y)
-            state.shape_points = canvas_to_full_image_cords(state, pts_can, cropping=True)
+            state.shape_points = canvas_to_full_image_cords(state, pts_can)
             state.canvas.coords(state.shape_ids[0], *pts_can[0], *pts_can[1])
             draw_crop_overlay()
 
@@ -266,8 +279,6 @@ def create_image_menu(state: State, menu_bar):
     menu_image.add_cascade(label="Select", menu=menu_select)
 
     menu_rotate = Menu(menu_image, tearoff=0)
-    menu_rotate.add_command(label="Rotate CW",
-                            command=lambda: apply_image_operation(rotate_90_degree_clockwise))
     add_menu_command_with_hotkey(state=state, menu=menu_rotate, label="Rotate CW",
                                  command=lambda: apply_image_operation(rotate_90_degree_clockwise),
                                  hotkey="Control+e")
