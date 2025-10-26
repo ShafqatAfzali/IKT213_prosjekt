@@ -73,7 +73,7 @@ def create_image_menu(state: State, menu_bar):
         [(x0_disp, y0_disp)] = full_image_cords_to_canvas_cords(state, [state.shape_points[0]])
 
         state.canvas.coords(state.shape_ids[0], x0_disp, y0_disp, x, y)
-    def finish_rectangle(event):
+    def finish_rectangle(_):
         state.canvas.unbind("<Button-1>")
         state.canvas.unbind("<B1-Motion>")
         state.canvas.unbind("<ButtonRelease-1>")
@@ -83,7 +83,7 @@ def create_image_menu(state: State, menu_bar):
         state.canvas.bind("<Escape>", lambda _: reset_selection())
 
     # ---------- Lasso -------------
-    def start_lasso(event):
+    def start_lasso(_):
         reset_selection()
         state.canvas.bind("<B1-Motion>", add_lasso_point)
         state.canvas.bind("<ButtonRelease-1>", finish_lasso)
@@ -102,7 +102,7 @@ def create_image_menu(state: State, menu_bar):
                                                width=2)
             state.shape_ids.append(line_id)
 
-    def finish_lasso(event):
+    def finish_lasso(_):
         state.canvas.unbind("<B1-Motion>")
         state.canvas.unbind("<ButtonRelease-1>")
         if len(state.shape_points) > 2:
@@ -144,7 +144,7 @@ def create_image_menu(state: State, menu_bar):
         [p0] = full_image_cords_to_canvas_cords(state, [state.shape_points[-1]])
         state.canvas.coords(state.shape_ids[-1], p0, *mouse_pos)
 
-    def finish_polygon(event):
+    def finish_polygon(_):
         state.canvas.unbind("<Button-1>")
         state.canvas.unbind("<Button-3>")
         state.canvas.unbind("<Motion>")
@@ -234,7 +234,7 @@ def create_image_menu(state: State, menu_bar):
             state.canvas.coords(state.shape_ids[0], *pts_can[0], *pts_can[1])
             draw_crop_overlay()
 
-    def finish_crop_drag(event):
+    def finish_crop_drag(_):
         if not state.shape_points:
             return
         (x0, y0), (x1, y1) = state.shape_points
