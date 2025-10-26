@@ -1,43 +1,9 @@
 import cv2
-import numpy as np
 
+from other.image_adjustments import adjustment
 from .image_conversion import cv2_to_tk
 from .cord_utils import full_image_cords_to_canvas_cords
 from classes.state import State
-
-def adjust_saturation(image, value):
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV).astype(np.float32)
-    hsv[..., 1] *= value
-    hsv[..., 1] = np.clip(hsv[..., 1], 0, 255)
-    return cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
-
-def adjust_exposure(image, value):
-    return np.clip(image.astype(np.float32) * value, 0, 255).astype(np.uint8)
-
-def set_white_balance_temperature(image, temp):
-    r_gain = 1.0 + (temp / 200)
-    b_gain = 1.0 - (temp / 200)
-    return adjust_white_balance(image, r_gain=r_gain, b_gain=b_gain)
-
-def adjust_white_balance(image, r_gain=1.0, g_gain=1.0, b_gain=1.0):
-    balanced = image.astype(np.float32)
-    balanced[...,0] *= b_gain
-    balanced[...,1] *= g_gain
-    balanced[...,2] *= r_gain
-    return np.clip(balanced, 0, 255).astype(np.uint8)
-
-def adjustment(state: State, image):
-    if state.preview_adjust:
-        image = cv2.convertScaleAbs(image, alpha=state.preview_contrast_value, beta=state.preview_brightness_value)
-        image = adjust_saturation(image, state.preview_saturation_value)
-        image = adjust_exposure(image, state.preview_exposure_value)
-        image = set_white_balance_temperature(image, state.preview_white_balance_value)
-    elif state.brightness_value != 0 or state.contrast_value != 0 or state.exposure_value != 1:
-        image = cv2.convertScaleAbs(image, alpha=state.contrast_value, beta=state.brightness_value)
-        image = adjust_saturation(image, state.saturation_value)
-        image = adjust_exposure(image, state.exposure_value)
-        image = set_white_balance_temperature(image, state.white_balance_value)
-    return image
 
 def render_pipeline(state: State, cropping=False):
     last_cache_idx = max([idx for idx in state.cached_images if idx <= len(state.operations)-1],default=-1)
@@ -62,7 +28,7 @@ def render_pipeline(state: State, cropping=False):
         for c in range(3):
             image[mask == 255, c] = color[::-1][c]
 
-    if not cropping and state.crop_metadata:
+    if not state.cropping and state.crop_metadata:
         cm = state.crop_metadata
         image = image[cm['y0']:cm['y1'], cm['x0']:cm['x1']]
 
@@ -110,9 +76,9 @@ def update_display_image(state: State, cropping=False, new_image=False):
         state.canvas.tag_lower("background_image_id")
 
 
-    if len(state.selection_points) >= 2 and state.selection_shape_ids:
-        disp_cords = full_image_cords_to_canvas_cords(state, state.selection_points)
+    if len(state.shape_points) >= 2 and state.shape_ids:
+        disp_cords = full_image_cords_to_canvas_cords(state, state.shape_points)
         disp_cords.append(disp_cords[0])
 
-        for i, shape_id in enumerate(state.selection_shape_ids):
+        for i, shape_id in enumerate(state.shape_ids):
             state.canvas.coords(shape_id, disp_cords[i], disp_cords[i+1])
