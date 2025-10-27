@@ -2,6 +2,8 @@ import json
 import os
 import tkinter as tk
 from tkinter import filedialog, messagebox
+import rawpy
+import numpy as np
 
 import cv2
 
@@ -21,12 +23,41 @@ def create_main_menu(state: State, menu_bar):
     def open_file():
         file_path = filedialog.askopenfilename(
             title="Open Image",
-            filetypes=(("Image Files", "*.jpg;*.jpeg;*.png;*.gif"), ("All Files", "*.*"))
+            filetypes=(("Image Files", "*.jpg;*.jpeg;*.png;*.gif;*.cr2;*.nef;*.arw;*.raf;*.rw2"),
+           ("All Files", "*.*"))
         )
         if file_path:
             state.preview_brush_mask = None
             state.current_file_path = file_path
-            state.original_image = cv2.imread(file_path)
+
+            ext = os.path.splitext(file_path)[1].lower()
+
+            if ext in [".cr2", ".nef", ".arw", ".raf", ".rw2"]:
+                try:
+                    with rawpy.imread(file_path) as raw:
+                        rgb = raw.postprocess()
+
+                    state.original_image = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+
+                    # Skaler hvis bildet er for stort
+                    max_width, max_height = 1920, 1080
+                    h, w = state.original_image.shape[:2]
+                    if w > max_width or h > max_height:
+                        scale = min(max_width / w, max_height / h)
+                        new_size = (int(w * scale), int(h * scale))
+                        state.original_image = cv2.resize(
+                            state.original_image, new_size, interpolation=cv2.INTER_AREA
+                        )
+
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to open RAW file:\n{e}")
+                    return  # viktig! avbryt her
+            else:
+                state.original_image = cv2.imread(file_path)
+                if state.original_image is None:
+                    messagebox.showerror("Error", "Could not open image file. It may be corrupted or unsupported.")
+                    return
+
             state.cv_image_full = state.original_image.copy()
             load_metadata(file_path)
             state.operations.clear()
@@ -144,7 +175,7 @@ def create_main_menu(state: State, menu_bar):
             messagebox.showinfo("Cut", "Image cut and stored in clipboard buffer.")
         else:
             messagebox.showwarning("Cut", "No image to cut.")
-    
+
     # File Menu
     file_menu = tk.Menu(menu_bar, tearoff=0)
     file_menu.add_command(label="New", command=new_file)
@@ -159,7 +190,7 @@ def create_main_menu(state: State, menu_bar):
     file_menu.add_separator()
     file_menu.add_command(label="Quit", command=state.main_window.quit)
     menu_bar.add_cascade(label="File", menu=file_menu)
-    
+
     # Clipboard Menu
     clipboard_menu = tk.Menu(menu_bar, tearoff=0)
     clipboard_menu.add_command(label="Copy", command=copy_action)
