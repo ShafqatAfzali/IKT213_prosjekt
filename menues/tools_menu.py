@@ -31,16 +31,16 @@ def create_tools_menu(state: State, menu_bar):
             nx, ny = 0.5, 0.5
 
         view_w_old, view_h_old = c_w / old_zoom, c_h / old_zoom
-        img_x = state.offset_x + nx * view_w_old
-        img_y = state.offset_y + ny * view_h_old
+        img_x = state.zoom_offset_x + nx * view_w_old
+        img_y = state.zoom_offset_y + ny * view_h_old
 
         view_w_new, view_h_new = c_w / new_zoom, c_h / new_zoom
-        state.offset_x = img_x - nx * view_w_new
-        state.offset_y = img_y - ny * view_h_new
+        state.zoom_offset_x = img_x - nx * view_w_new
+        state.zoom_offset_y = img_y - ny * view_h_new
 
         h, w, _ = state.cv_image_full.shape
-        state.offset_x = clamp(state.offset_x, 0, max(0, w - view_w_new))
-        state.offset_y = clamp(state.offset_y, 0, max(0, h - view_h_new))
+        state.zoom_offset_x = clamp(state.zoom_offset_x, 0, max(0, w - view_w_new))
+        state.zoom_offset_y = clamp(state.zoom_offset_y, 0, max(0, h - view_h_new))
 
         state.zoom = new_zoom
         update_display_image(state)
@@ -51,8 +51,8 @@ def create_tools_menu(state: State, menu_bar):
     def do_pan(event):
         dx = (event.x - state.pan_start[0]) / state.zoom
         dy = (event.y - state.pan_start[1]) / state.zoom
-        state.offset_x -= int(dx)
-        state.offset_y -= int(dy)
+        state.zoom_offset_x -= int(dx)
+        state.zoom_offset_y -= int(dy)
 
         h, w, _ = state.cv_image_full.shape
         c_width, c_height = state.canvas.winfo_width(), state.canvas.winfo_height()
@@ -61,8 +61,8 @@ def create_tools_menu(state: State, menu_bar):
 
         max_x = max(0, w - view_w)
         max_y = max(0, h - view_h)
-        state.offset_x = max(0, min(state.offset_x, max_x))
-        state.offset_y = max(0, min(state.offset_y, max_y))
+        state.zoom_offset_x = max(0, min(state.zoom_offset_x, max_x))
+        state.zoom_offset_y = max(0, min(state.zoom_offset_y, max_y))
 
         state.pan_start = (event.x, event.y)
         update_display_image(state)

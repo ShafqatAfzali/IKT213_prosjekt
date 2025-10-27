@@ -28,8 +28,8 @@ class State:
 
         # zoom
         self.zoom = 1.0  # 1 = 100%
-        self.offset_x = 0
-        self.offset_y = 0
+        self.zoom_offset_x = 0
+        self.zoom_offset_y = 0
         self.min_zoom = 0.25
         self.max_zoom = 8.0
         self.pan_start = None

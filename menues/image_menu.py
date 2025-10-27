@@ -8,8 +8,6 @@ from helpers.image_render import update_display_image
 from helpers.cord_utils import clamp_to_image, full_image_cords_to_canvas_cords, canvas_to_full_image_cords
 from classes.state import State
 
-# NOTE TO SELF: Tidy up
-
 def create_image_menu(state: State, menu_bar):
     def reset_selection():
         state.canvas.unbind("<Escape>")
@@ -109,7 +107,7 @@ def create_image_menu(state: State, menu_bar):
             p1_full = state.shape_points[0]
             p2_full = state.shape_points[-1]
 
-            disp_cords = full_image_cords_to_canvas_cords(state, [(p1_full, p2_full)])
+            disp_cords = full_image_cords_to_canvas_cords(state, [p1_full, p2_full])
 
 
             line_id = state.canvas.create_line(disp_cords[1], disp_cords[0],
