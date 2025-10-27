@@ -5,7 +5,7 @@ from .image_conversion import cv2_to_tk
 from .cord_utils import full_image_cords_to_canvas_cords
 from classes.state import State
 
-def render_pipeline(state: State, cropping=False):
+def render_pipeline(state: State):
     last_cache_idx = max([idx for idx in state.cached_images if idx <= len(state.operations)-1],default=-1)
 
     if last_cache_idx >= 0:
@@ -38,12 +38,12 @@ def render_pipeline(state: State, cropping=False):
     return image
 
 
-def update_display_image(state: State, cropping=False, new_image=False):
+def update_display_image(state: State, new_image=False):
     if state.cv_image_full is None:
         return
 
     if not new_image:
-        image = render_pipeline(state, cropping=cropping)
+        image = render_pipeline(state)
     else:
         image = state.original_image.copy()
 
@@ -52,8 +52,8 @@ def update_display_image(state: State, cropping=False, new_image=False):
 
     view_w = int(c_width / state.zoom)
     view_h = int(c_height / state.zoom)
-    x0 = int(state.offset_x)
-    y0 = int(state.offset_y)
+    x0 = int(state.zoom_offset_x)
+    y0 = int(state.zoom_offset_y)
     x1 = x0 + view_w
     y1 = y0 + view_h
 
