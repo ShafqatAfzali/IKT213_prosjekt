@@ -148,6 +148,7 @@ def create_tools_menu(state: State, menu_bar):
     # === Filters ===
     def apply_filter(func):
         state.operations.append((func, [], {"selection_mask": state.selection_mask}))
+        state.redo_stack.clear()
         update_display_image(state)
 
     def gaussian_filter(image, selection_mask = None):
@@ -207,6 +208,50 @@ def create_tools_menu(state: State, menu_bar):
 
         return image
 
+    def median_filter(image, selection_mask=None):
+        if image is None:
+            return image
+
+        median_blur = cv2.medianBlur(image, 5)
+
+        if selection_mask is not None:
+            image[selection_mask == 255] = median_blur[selection_mask == 255]
+        else:
+            image = median_blur
+        return image
+
+    def guided_filter(image, selection_mask=None):
+        if image is None:
+            return image
+
+        img_float = image.astype(np.float32) / 255.0
+        guided = cv2.ximgproc.guidedFilter(img_float, img_float, radius=8, eps=0.04)
+        guided = (guided * 255).astype(np.uint8)
+
+        if selection_mask is not None:
+            image[selection_mask == 255] = guided[selection_mask == 255]
+        else:
+            image = guided
+        return image
+
+    def sharpen(image, selection_mask=None):
+        if image is None:
+            return image
+
+        strength = 1.5
+        blur_ksize = (5, 5)
+
+        blurred = cv2.GaussianBlur(image, blur_ksize, 0)
+
+        sharpened = cv2.addWeighted(image, strength, blurred, -0.5 * strength, 0)
+
+        if selection_mask is not None:
+            image[selection_mask == 255] = sharpened[selection_mask == 255]
+        else:
+            image = sharpened
+
+        return image
+
     tools_menu = tk.Menu(menu_bar, tearoff=0)
     tools_menu.add_command(label="Zoom In", command=lambda: zoom(0.25))
     tools_menu.add_command(label="Zoom Out", command=lambda: zoom(-0.25))
@@ -220,6 +265,9 @@ def create_tools_menu(state: State, menu_bar):
     filters_menu.add_command(label="Sobel Filter", command=lambda: apply_filter(sobel_filter))
     filters_menu.add_command(label="Binary Filter", command=lambda: apply_filter(binary_filter))
     filters_menu.add_command(label="Histogram Threshold", command=lambda: apply_filter(histogram_threshold))
+    filters_menu.add_command(label="Median blur", command=lambda: apply_filter(median_filter))
+    filters_menu.add_command(label="Guided filter", command=lambda: apply_filter(guided_filter))
+    filters_menu.add_command(label="Sharpen", command=lambda: apply_filter(sharpen))
     #tools_menu.add_command(label="Choose Brush Color", command=pick_color)
     #tools_menu.add_command(label="Brush Size 5", command=lambda: set_size(5))
     #tools_menu.add_command(label="Brush Size 10", command=lambda: set_size(10))
