@@ -207,6 +207,19 @@ def create_tools_menu(state: State, menu_bar):
 
         return image
 
+    def median_filter(image, selection_mask=None):
+        if image is None:
+            return image
+
+        median_blur = cv2.medianBlur(image, 5)
+
+        if selection_mask is not None:
+            image[selection_mask == 255] = median_blur[selection_mask == 255]
+        else:
+            image = median_blur
+        return image
+
+
     tools_menu = tk.Menu(menu_bar, tearoff=0)
     tools_menu.add_command(label="Zoom In", command=lambda: zoom(0.25))
     tools_menu.add_command(label="Zoom Out", command=lambda: zoom(-0.25))
@@ -220,6 +233,7 @@ def create_tools_menu(state: State, menu_bar):
     filters_menu.add_command(label="Sobel Filter", command=lambda: apply_filter(sobel_filter))
     filters_menu.add_command(label="Binary Filter", command=lambda: apply_filter(binary_filter))
     filters_menu.add_command(label="Histogram Threshold", command=lambda: apply_filter(histogram_threshold))
+    filters_menu.add_command(label="Median blur", command=lambda: apply_filter(median_filter))
     #tools_menu.add_command(label="Choose Brush Color", command=pick_color)
     #tools_menu.add_command(label="Brush Size 5", command=lambda: set_size(5))
     #tools_menu.add_command(label="Brush Size 10", command=lambda: set_size(10))
