@@ -9,6 +9,7 @@ import cv2
 from classes.state import State
 from helpers.image_render import update_display_image
 from helpers.menu_utils import add_menu_command_with_hotkey
+from other.constants import ADJUSTMENT_DEFAULT_VALUES
 
 
 def create_main_menu(state: State, menu_bar):
@@ -133,10 +134,19 @@ def create_main_menu(state: State, menu_bar):
                     break
 
             if prev_value is None:
-                prev_value = 0 if key in ("brightness","white_balance") else 1
+                prev_value = ADJUSTMENT_DEFAULT_VALUES[key]
 
             state.adjustment_values[key] = prev_value
+        elif func_name == "set_preset":
+            prev_values = None
+            for op in reversed(state.operations):
+                if op[0].__name__ == func_name:
+                    prev_values = op[1][0]
+                    break
 
+            if prev_values is None:
+                prev_values = ADJUSTMENT_DEFAULT_VALUES
+            state.adjustment_values = prev_values.copy()
 
         if op_idx in state.cached_images:
             del state.cached_images[op_idx]
