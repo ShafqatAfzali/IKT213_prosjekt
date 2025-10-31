@@ -15,8 +15,9 @@ def create_adjustment_menu(state: State, menu_bar):
             return
 
         # Create new panel
-        panel = Frame(state.main_window, width=panel_width, bg="#2b2b2b")
-        panel.pack(side=RIGHT, fill=Y, anchor="e")
+        panel = Frame(state.main_frame, bg="#222", width=panel_width)
+        panel.pack(side=RIGHT, fill=BOTH)
+
         state.adjustment_panel = panel
 
         def add_slider(label, key, min_val, max_val, resolution=1.0):

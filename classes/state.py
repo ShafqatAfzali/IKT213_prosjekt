@@ -4,6 +4,7 @@ class State:
     def __init__(self):
         # tkinter references
         self.main_window = None
+        self.main_frame = None
         self.canvas = None
 
         # Image references

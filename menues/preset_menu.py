@@ -70,17 +70,3 @@ def create_preset_menu(state: State, menu_bar):
         state.redo_stack.clear()
         update_display_image(state)
 
-    preset_menu = Menu(menu_bar, tearoff=0)
-
-    preset_menu.add_command(label="Save preset",command=lambda:save_preset("Test", state.adjustment_values))
-
-    for name, preset in BUILTIN_PRESETS.items():
-        preset_menu.add_command(label=name,command=lambda p=preset: apply_preset(p))
-
-    custom_presets = load_presets()
-
-    for name, preset in custom_presets.items():
-        preset_menu.add_command(label=name,command=lambda p=preset: apply_preset(p))
-
-    menu_bar.add_cascade(label="Preset", menu=preset_menu)
-

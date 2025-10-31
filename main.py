@@ -33,6 +33,7 @@ if __name__ == "__main__":
     state = State()
     state.canvas = canvas
     state.main_window = main_window
+    state.main_frame = main_frame
 
 
     menu_bar = Menu(main_window)
