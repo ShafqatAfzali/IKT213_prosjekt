@@ -1,7 +1,7 @@
 from tkinter import Frame, Label, Scale, BOTH, RIGHT, HORIZONTAL, Menu, Y
 from classes.state import State
 from helpers.image_render import update_display_image
-
+from menues.preset_menu import create_preset_menu
 
 
 def create_adjustment_menu(state: State, menu_bar):
@@ -15,15 +15,13 @@ def create_adjustment_menu(state: State, menu_bar):
             return
 
         # Create new panel
-        panel = Frame(state.main_frame, bg="#222", width=panel_width)
-        panel.pack(side=RIGHT, fill=BOTH)
-
-        state.adjustment_panel = panel
+        adjustment_panel = Frame(state.main_frame, bg="#222", width=panel_width)
+        adjustment_panel.pack(side=RIGHT, fill=BOTH)
 
         def add_slider(label, key, min_val, max_val, resolution=1.0):
-            Label(panel, text=label, bg="#2b2b2b", fg="white").pack()
+            Label(adjustment_panel, text=label, bg="#2b2b2b", fg="white").pack()
             slider = Scale(
-                panel,
+                adjustment_panel,
                 from_=min_val,
                 to=max_val,
                 resolution=resolution,
@@ -57,5 +55,7 @@ def create_adjustment_menu(state: State, menu_bar):
         add_slider("Saturation", "saturation", 0.0, 2.0, 0.1)
         add_slider("Exposure", "exposure", 0.5, 2.0, 0.1)
         add_slider("White balance", "white_balance", -100, 100, 1)
+
+        create_preset_menu(state, adjustment_panel)
 
     menu_bar.add_command(label="Adjustment", command=toggle_adjustment_panel)
