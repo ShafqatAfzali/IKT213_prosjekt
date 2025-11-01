@@ -8,16 +8,16 @@ def create_adjustment_menu(state: State, menu_bar):
     panel_width = 250
 
     def toggle_adjustment_panel():
-        # If already open, close it
         if hasattr(state, "adjustment_panel") and state.adjustment_panel.winfo_exists():
             state.adjustment_panel.destroy()
             delattr(state, "adjustment_panel")
             return
 
-        # Create new panel
         adjustment_panel = Frame(state.main_frame, bg="#222", width=panel_width)
         # noinspection PyTypeChecker
         adjustment_panel.pack(side=RIGHT, fill=BOTH)
+
+        state.adjustment_panel = adjustment_panel
 
         def add_slider(label, key, min_val, max_val, resolution=1.0):
             def start_preview(key):
@@ -84,11 +84,14 @@ def create_adjustment_menu(state: State, menu_bar):
         saturation_slider = add_slider("Saturation", "saturation", 0.0, 2.0, 0.1)
         exposure_slider = add_slider("Exposure", "exposure", 0.5, 2.0, 0.1)
         white_balance_slider = add_slider("White balance", "white_balance", -100, 100, 1)
+        tone_curve_strength_slider = add_slider("Tone curve strength", "tone_curve_strength", -1.0, 1.0, 0.01)
+        vignette_strength_slider = add_slider("Vignette strength", "vignette_strength", 0.0, 1.0, 0.01)
 
         # Add toggle buttons
         grayscale_toggle = add_toggle("Grayscale", "grayscale")
 
-        sliders = dict([brightness_slider, contrast_slider, saturation_slider, exposure_slider, white_balance_slider])
+        sliders = dict([brightness_slider, contrast_slider, saturation_slider, exposure_slider, white_balance_slider,
+                       tone_curve_strength_slider,vignette_strength_slider])
         toggle_buttons = dict([grayscale_toggle])
 
         create_preset_menu(state, adjustment_panel, sliders, toggle_buttons)
