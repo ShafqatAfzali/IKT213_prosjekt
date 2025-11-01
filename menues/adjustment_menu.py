@@ -1,4 +1,4 @@
-from tkinter import Frame, Label, Scale, BOTH, RIGHT, HORIZONTAL, Menu, Y
+from tkinter import Frame, Label, Scale, BOTH, RIGHT, HORIZONTAL
 from classes.state import State
 from helpers.image_render import update_display_image
 from menues.preset_menu import create_preset_menu
@@ -16,10 +16,12 @@ def create_adjustment_menu(state: State, menu_bar):
 
         # Create new panel
         adjustment_panel = Frame(state.main_frame, bg="#222", width=panel_width)
+        # noinspection PyTypeChecker
         adjustment_panel.pack(side=RIGHT, fill=BOTH)
 
         def add_slider(label, key, min_val, max_val, resolution=1.0):
             Label(adjustment_panel, text=label, bg="#2b2b2b", fg="white").pack()
+            # noinspection PyTypeChecker
             slider = Scale(
                 adjustment_panel,
                 from_=min_val,
@@ -30,11 +32,15 @@ def create_adjustment_menu(state: State, menu_bar):
             )
             slider.set(state.adjustment_values[key])
             slider.pack(fill="x")
+            slider.bind("<ButtonPress-1>", lambda e, k=key: start_preview(k))
             slider.bind("<ButtonRelease-1>", lambda e: on_release(key))
+
+        def start_preview(key):
+            state.preview_values = state.adjustment_values.copy()
 
         def on_drag(value, key):
             if state.preview_values is None:
-                state.preview_values = state.adjustment_values.copy()
+                return
             state.preview_values[key] = type(state.adjustment_values[key])(value)
             update_display_image(state)
 
