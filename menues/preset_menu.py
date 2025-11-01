@@ -37,7 +37,7 @@ BUILTIN_PRESETS = {
 
 
 PRESET_FILE = Path("data/presets.json")
-def create_preset_menu(state: State, adjustment_panel):
+def create_preset_menu(state: State, adjustment_panel, sliders, toggle_buttons):
     def load_presets():
         if PRESET_FILE.exists():
             try:
@@ -74,9 +74,16 @@ def create_preset_menu(state: State, adjustment_panel):
         name = preset_var.get()
         if name not in presets:
             return
-        adjustments = presets[name]
+        preset = presets[name]
+        adjustments = state.adjustment_values.copy()
+        for key, value in preset.items():
+            adjustments[key] = value
         state.operations.append((set_preset, [adjustments], {}))
         state.redo_stack.clear()
+        for key, slider in sliders.items():
+            slider.set(adjustments[key])
+        for key, var in toggle_buttons.items():
+            var.set(adjustments[key])
         update_display_image(state)
 
     def get_presets():
