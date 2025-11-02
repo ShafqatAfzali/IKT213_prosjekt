@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import colorchooser, simpledialog
 from helpers.image_render import update_display_image
 from helpers.cord_utils import canvas_to_full_image_cords
+import tkinter.messagebox as messagebox
+
 
 import cv2
 import numpy as np
@@ -40,11 +42,14 @@ def create_shapes_menu(state: State, menu_bar):
             outline_color = color[1]
 
     def set_fill_color():
-        """Open color chooser for fill color"""
+        """Open color chooser for fill color (robust to empty initialcolor)."""
         global fill_color
-        color = colorchooser.askcolor(title="Choose Fill Color", initialcolor=fill_color)
-        if color[1]:  # If a color was chosen
+        initial = fill_color if fill_color else None
+        color = colorchooser.askcolor(title="Choose Fill Color", initialcolor=initial)
+        if color and color[1]:
             fill_color = color[1]
+        else:
+            pass
 
     def set_line_width():
         """Set line width for shapes"""
@@ -114,18 +119,25 @@ def create_shapes_menu(state: State, menu_bar):
 
         # get final coordinates from canvas
         coords = state.canvas.coords(current_shape)
-        [(x1, y1), (x2, y2)] = canvas_to_full_image_cords(state, [(coords[0], coords[1]), (coords[2], coords[3])])
-        coords = [x1,y1,x2,y2]
+        if current_shape_type == "triangle":
+            pts_canvas = [(coords[i], coords[i + 1]) for i in range(0, len(coords), 2)]
+            pts_image = canvas_to_full_image_cords(state, pts_canvas)
+            coords = [c for point in pts_image for c in point]
+        else:
+            [(x1, y1), (x2, y2)] = canvas_to_full_image_cords(
+                state, [(coords[0], coords[1]), (coords[2], coords[3])]
+            )
+            coords = [x1, y1, x2, y2]
 
         def color_to_bgr(color):
             if not color:
                 return None
-            # Tkinter color names
             try:
-                rgb = state.canvas.winfo_rgb(color)
-                return (rgb)
+                r, g, b = state.canvas.winfo_rgb(color)
+                return (r // 256, g // 256, b // 256)
             except Exception:
                 return None
+
 
         def draw_shape(image, shape_type, coords, outline, fill, width):
             result = image.copy()
@@ -134,21 +146,30 @@ def create_shapes_menu(state: State, menu_bar):
 
             if shape_type == "rectangle":
                 x1, y1, x2, y2 = map(int, coords)
+                if bgr_fill:
+                    cv2.rectangle(result, (x1, y1), (x2, y2), bgr_fill[::-1], -1)
                 cv2.rectangle(result, (x1, y1), (x2, y2), bgr_outline[::-1], width)
+
             elif shape_type == "oval":
                 x1, y1, x2, y2 = map(int, coords)
                 center = ((x1 + x2) // 2, (y1 + y2) // 2)
                 axes = ((x2 - x1) // 2, (y2 - y1) // 2)
+                if bgr_fill:
+                    cv2.ellipse(result, center, axes, 0, 0, 360, bgr_fill[::-1], -1)
                 cv2.ellipse(result, center, axes, 0, 0, 360, bgr_outline[::-1], width)
+
             elif shape_type == "line":
                 x1, y1, x2, y2 = map(int, coords)
                 cv2.line(result, (x1, y1), (x2, y2), bgr_outline[::-1], width)
+
             elif shape_type == "triangle":
                 pts = np.array(coords, np.int32).reshape((-1, 1, 2))
-                cv2.polylines(result, [pts], isClosed=True, color=bgr_outline[::-1], thickness=width)
                 if bgr_fill:
                     cv2.fillPoly(result, [pts], bgr_fill[::-1])
+                cv2.polylines(result, [pts], isClosed=True, color=bgr_outline[::-1], thickness=width)
+
             return result
+
 
         state.operations.append(
             (
