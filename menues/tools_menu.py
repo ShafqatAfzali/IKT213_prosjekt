@@ -60,46 +60,54 @@ def create_tools_menu(state: State, menu_bar):
         state.pan_start = (event.x, event.y)
         update_display_image(state)
 
-    # Allow pan with Shift + Left Mouse (laptop users)
+    # Allow pan with Shift + Left Mouse (for laptop users)
     def shift_pan(event):
-        if event.state & 0x0001:  # Shift key
+        if event.state & 0x0001:
             do_pan(event)
 
-    # -------------------- Eraser --------------------
-    def start_eraser():
-        state.brush_mode = "erase"
-        if state.canvas is not None:
-            state.canvas.bind("<B1-Motion>", erase_draw)
-            state.canvas.bind("<ButtonRelease-1>", stop_erase)
-
-    def erase_draw(event):
+    # -------------------- Eyedropper Tool --------------------
+    def pick_color_eyedropper():
         if state.cv_image_full is None:
             return
-        cords = canvas_to_full_image_cords(state, [(event.x, event.y)])
-        (x, y) = cords[0]
-        cv2.circle(state.cv_image_full, (x, y), state.brush_size, (255, 255, 255), -1)
-        update_display_image(state)
-
-    def stop_erase(event):
-        if state.canvas is not None:
-            state.canvas.unbind("<B1-Motion>")
-        update_display_image(state)
-
-    # -------------------- Eyedropper Color Picker --------------------
-    def pick_color_eyedropper(event=None):
-        if state.cv_image_full is None:
-            return
+        print("Click anywhere to pick a color...")
         state.canvas.bind("<Button-1>", eyedrop_click)
 
     def eyedrop_click(event):
         cords = canvas_to_full_image_cords(state, [(event.x, event.y)])
         (x, y) = cords[0]
-        color = state.cv_image_full[y, x].tolist()  # BGR
-        state.brush_color = tuple(color[::-1])  # convert to RGB
+        color = state.cv_image_full[y, x].tolist()
+        state.brush_color = tuple(color[::-1])  # BGR -> RGB
         print("Picked color:", state.brush_color)
         state.canvas.unbind("<Button-1>")
 
-    # -------------------- Paint Brush with Patterns --------------------
+    # -------------------- Eraser --------------------
+    def start_eraser():
+        global brush_active
+        brush_active = True
+        state.brush_mode = "erase"
+        state.canvas.bind("<B1-Motion>", erase_draw)
+        state.canvas.bind("<ButtonRelease-1>", stop_erase)
+
+    def erase_draw(event):
+        if state.cv_image_full is None:
+            return
+
+        cords = canvas_to_full_image_cords(state, [(event.x, event.y)])
+        (x, y) = cords[0]
+
+        def apply_erase(image):
+            result = image.copy()
+            cv2.circle(result, (x, y), state.brush_size, (255, 255, 255), -1)
+            return result
+
+        state.operations.append((apply_erase, [], {}))
+        update_display_image(state)
+
+    def stop_erase(event):
+        state.canvas.unbind("<B1-Motion>")
+        update_display_image(state)
+
+    # -------------------- Paint Brush --------------------
     def start_brush(pattern="solid"):
         global brush_active
         brush_active = True
@@ -114,17 +122,21 @@ def create_tools_menu(state: State, menu_bar):
 
         cords = canvas_to_full_image_cords(state, [(event.x, event.y)])
         (x, y) = cords[0]
+        color = state.brush_color[::-1]  # RGB->BGR
 
-        color = state.brush_color[::-1]  # to BGR
-        if state.brush_pattern == "dotted":
-            if (x + y) % 10 < 5:
-                cv2.circle(state.cv_image_full, (x, y), state.brush_size, color, -1)
-        elif state.brush_pattern == "striped":
-            if x % 10 < 5:
-                cv2.circle(state.cv_image_full, (x, y), state.brush_size, color, -1)
-        else:
-            cv2.circle(state.cv_image_full, (x, y), state.brush_size, color, -1)
+        def apply_brush(image):
+            result = image.copy()
+            if state.brush_pattern == "dotted":
+                if (x + y) % 10 < 5:
+                    cv2.circle(result, (x, y), state.brush_size, color, -1)
+            elif state.brush_pattern == "striped":
+                if x % 10 < 5:
+                    cv2.circle(result, (x, y), state.brush_size, color, -1)
+            else:
+                cv2.circle(result, (x, y), state.brush_size, color, -1)
+            return result
 
+        state.operations.append((apply_brush, [], {}))
         update_display_image(state)
 
     def stop_brush(event):
@@ -133,24 +145,32 @@ def create_tools_menu(state: State, menu_bar):
         state.canvas.unbind("<B1-Motion>")
         update_display_image(state)
 
-    # -------------------- Text Tool --------------------
+    # -------------------- Text Placement --------------------
     def enable_text_mode():
         global text_mode_active
         text_mode_active = True
         state.canvas.bind("<Button-1>", place_text_click)
-        print("Click anywhere to place text...")
+        print("Click to place text...")
 
     def place_text_click(event):
         global text_mode_active
         if not text_mode_active:
             return
+
         text = simpledialog.askstring("Add Text", "Enter text:")
         if not text:
             return
 
         cords = canvas_to_full_image_cords(state, [(event.x, event.y)])
         (x, y) = cords[0]
-        cv2.putText(state.cv_image_full, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 1, state.brush_color[::-1], 2)
+
+        def apply_text(image):
+            result = image.copy()
+            cv2.putText(result, text, (x, y),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, state.brush_color[::-1], 2)
+            return result
+
+        state.operations.append((apply_text, [], {}))
         update_display_image(state)
         text_mode_active = False
         state.canvas.unbind("<Button-1>")
@@ -158,36 +178,90 @@ def create_tools_menu(state: State, menu_bar):
     # -------------------- Filters --------------------
     def apply_filter(func):
         state.operations.append((func, [], {"selection_mask": state.selection_mask}))
+        state.redo_stack.clear()
         update_display_image(state)
 
-    def gaussian_filter(img, selection_mask=None):
-        if img is None:
-            return img
-        blur = cv2.GaussianBlur(img, (5, 5), 0)
-        return blur
+    def gaussian_filter(image, selection_mask=None):
+        if image is None:
+            return image
+        blurred = cv2.GaussianBlur(image, (5, 5), 0)
+        if selection_mask is not None:
+            image[selection_mask == 255] = blurred[selection_mask == 255]
+        else:
+            image = blurred
+        return image
 
-    def sobel_filter(img, selection_mask=None):
-        if img is None:
-            return img
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    def sobel_filter(image, selection_mask=None):
+        if image is None:
+            return image
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=5)
         sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=5)
         sobel = cv2.convertScaleAbs(cv2.magnitude(sobelx, sobely))
-        return cv2.cvtColor(sobel, cv2.COLOR_GRAY2BGR)
+        sobel_rgb = cv2.cvtColor(sobel, cv2.COLOR_GRAY2BGR)
+        if selection_mask is not None:
+            image[selection_mask == 255] = sobel_rgb[selection_mask == 255]
+        else:
+            image = sobel_rgb
+        return image
 
-    def binary_filter(img, selection_mask=None):
-        if img is None:
-            return img
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    def binary_filter(image, selection_mask=None):
+        if image is None:
+            return image
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
-        return cv2.cvtColor(binary, cv2.COLOR_GRAY2BGR)
+        binary_rgb = cv2.cvtColor(binary, cv2.COLOR_GRAY2BGR)
+        if selection_mask is not None:
+            image[selection_mask == 255] = binary_rgb[selection_mask == 255]
+        else:
+            image = binary_rgb
+        return image
 
-    def histogram_threshold(img, selection_mask=None):
-        if img is None:
-            return img
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    def histogram_threshold(image, selection_mask=None):
+        if image is None:
+            return image
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        return cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+        thresh_rgb = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+        if selection_mask is not None:
+            image[selection_mask == 255] = thresh_rgb[selection_mask == 255]
+        else:
+            image = thresh_rgb
+        return image
+
+    def median_filter(image, selection_mask=None):
+        if image is None:
+            return image
+        blurred = cv2.medianBlur(image, 5)
+        if selection_mask is not None:
+            image[selection_mask == 255] = blurred[selection_mask == 255]
+        else:
+            image = blurred
+        return image
+
+    def guided_filter(image, selection_mask=None):
+        if image is None:
+            return image
+        img_float = image.astype(np.float32) / 255.0
+        guided = cv2.ximgproc.guidedFilter(img_float, img_float, radius=8, eps=0.04)
+        guided = (guided * 255).astype(np.uint8)
+        if selection_mask is not None:
+            image[selection_mask == 255] = guided[selection_mask == 255]
+        else:
+            image = guided
+        return image
+
+    def sharpen(image, selection_mask=None):
+        if image is None:
+            return image
+        strength = 1.5
+        blurred = cv2.GaussianBlur(image, (5, 5), 0)
+        sharpened = cv2.addWeighted(image, strength, blurred, -0.5 * strength, 0)
+        if selection_mask is not None:
+            image[selection_mask == 255] = sharpened[selection_mask == 255]
+        else:
+            image = sharpened
+        return image
 
     # -------------------- Menu Setup --------------------
     tools_menu = tk.Menu(menu_bar, tearoff=0)
@@ -205,12 +279,15 @@ def create_tools_menu(state: State, menu_bar):
     filters_menu.add_command(label="Sobel Filter", command=lambda: apply_filter(sobel_filter))
     filters_menu.add_command(label="Binary Filter", command=lambda: apply_filter(binary_filter))
     filters_menu.add_command(label="Histogram Threshold", command=lambda: apply_filter(histogram_threshold))
+    filters_menu.add_command(label="Median Blur", command=lambda: apply_filter(median_filter))
+    filters_menu.add_command(label="Guided Filter", command=lambda: apply_filter(guided_filter))
+    filters_menu.add_command(label="Sharpen", command=lambda: apply_filter(sharpen))
 
     tools_menu.add_cascade(label="Filters", menu=filters_menu)
     menu_bar.add_cascade(label="Tools", menu=tools_menu)
 
-    # Bindings
+    # -------------------- Bindings --------------------
     state.canvas.bind("<MouseWheel>", lambda e: zoom(step=0.25 if e.delta > 0 else -0.25, event=e))
     state.canvas.bind("<ButtonPress-2>", start_pan)
     state.canvas.bind("<B2-Motion>", do_pan)
-    state.canvas.bind("<B1-Motion>", shift_pan)
+    state.canvas.bind("<Shift-B1-Motion>", shift_pan)
