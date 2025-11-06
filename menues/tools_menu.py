@@ -87,8 +87,7 @@ def create_tools_menu(state: State, menu_bar):
         if state.cv_image_full is None:
             return
 
-        cords = canvas_to_full_image_cords(state, [(event.x, event.y)])
-        (x, y) = cords[0]
+        [(x,y)] = canvas_to_full_image_cords(state, [(event.x, event.y)])
 
         def apply_erase(image):
             result = image.copy()
@@ -103,41 +102,57 @@ def create_tools_menu(state: State, menu_bar):
         update_display_image(state)
 
     # -------------------- Paint Brush --------------------
+    def activate_brush(pattern: str):
+        state.canvas.bind("<Button-1>", lambda p=pattern: start_brush(pattern))
+        state.canvas.bind("<B1-Motion>", draw_brush)
+        state.canvas.bind("<ButtonRelease-1>", brush_released)
+        state.canvas.bind("<Button-3>", stop_brush)
+
     def start_brush(pattern="solid"):
         global brush_active
         brush_active = True
-        state.brush_pattern = pattern
-        state.canvas.bind("<B1-Motion>", draw_brush)
-        state.canvas.bind("<ButtonRelease-1>", stop_brush)
+
+        state.preview_brush_mask = np.zeros((*state.cv_image_full.shape[:2], 4), dtype=np.uint8)
+        state.preview_brush_mask[..., 3] = 0
         print("Brush pattern:", pattern)
 
     def draw_brush(event):
         if state.cv_image_full is None:
             return
 
-        cords = canvas_to_full_image_cords(state, [(event.x, event.y)])
-        (x, y) = cords[0]
-        color = state.brush_color[::-1]  # RGB->BGR
+        image_cords = canvas_to_full_image_cords(state, [(event.x, event.y)])
+        (x, y) = image_cords[0]
+        color_bgr = state.brush_color[::-1]
 
-        def apply_brush(image):
-            result = image.copy()
-            if state.brush_pattern == "dotted":
-                if (x + y) % 10 < 5:
-                    cv2.circle(result, (x, y), state.brush_size, color, -1)
-            elif state.brush_pattern == "striped":
-                if x % 10 < 5:
-                    cv2.circle(result, (x, y), state.brush_size, color, -1)
-            else:
-                cv2.circle(result, (x, y), state.brush_size, color, -1)
-            return result
+        if state.brush_pattern == "dotted":
+            if (x + y) % 10 < 5:
+                cv2.circle(state.preview_brush_mask, (x, y), state.brush_size, (*color_bgr, 255), -1)
+        elif state.brush_pattern == "striped":
+            if x % 10 < 5:
+                cv2.circle(state.preview_brush_mask, (x, y), state.brush_size, (*color_bgr, 255), -1)
+        else:
+            cv2.circle(state.preview_brush_mask, (x, y), state.brush_size, (*color_bgr, 255), -1)
 
-        state.operations.append((apply_brush, [], {}))
         update_display_image(state)
+
+    def brush_released(event):
+        def apply_brush(image, mask):
+            alpha_mask = mask[..., 3] > 0
+            image[alpha_mask] = mask[..., :3][alpha_mask]
+            return image
+        state.operations.append((apply_brush, [], {"mask": state.preview_brush_mask.copy()}))
+        state.preview_brush_mask = None
+        state.redo_stack.clear()
+        update_display_image(state)
+
 
     def stop_brush(event):
         global brush_active
         brush_active = False
+        state.canvas.unbind("<Button-1>")
         state.canvas.unbind("<B1-Motion>")
+        state.canvas.unbind("<ButtonRelease-1>")
+        state.canvas.unbind("<Button-3>")
         update_display_image(state)
 
     # -------------------- Text Placement --------------------
@@ -264,9 +279,9 @@ def create_tools_menu(state: State, menu_bar):
     tools_menu.add_command(label="Zoom Out", command=lambda: zoom(-0.25))
     tools_menu.add_command(label="Eraser", command=start_eraser)
     tools_menu.add_command(label="Eyedropper", command=pick_color_eyedropper)
-    tools_menu.add_command(label="Brush (Solid)", command=lambda: start_brush("solid"))
-    tools_menu.add_command(label="Brush (Dotted)", command=lambda: start_brush("dotted"))
-    tools_menu.add_command(label="Brush (Striped)", command=lambda: start_brush("striped"))
+    tools_menu.add_command(label="Brush (Solid)", command=lambda: activate_brush("solid"))
+    tools_menu.add_command(label="Brush (Dotted)", command=lambda: activate_brush("dotted"))
+    tools_menu.add_command(label="Brush (Striped)", command=lambda: activate_brush("striped"))
     tools_menu.add_command(label="Text Tool", command=enable_text_mode)
 
     filters_menu = tk.Menu(menu_bar, tearoff=0)

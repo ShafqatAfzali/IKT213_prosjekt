@@ -24,9 +24,8 @@ def render_pipeline(state: State):
 
     if state.preview_brush_mask is not None:
         mask = state.preview_brush_mask
-        color = state.brush_color
-        for c in range(3):
-            image[mask == 255, c] = color[::-1][c]
+        alpha_mask = mask[..., 3] > 0
+        image[alpha_mask] = mask[..., :3][alpha_mask]
 
     if not state.cropping and state.crop_metadata:
         cm = state.crop_metadata
