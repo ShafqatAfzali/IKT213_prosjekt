@@ -2,7 +2,6 @@ import sys
 import os
 
 from menues.adjustment_menu import create_adjustment_menu
-from menues.preset_menu import create_preset_menu
 from menues.test_menu import create_test_menu
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -23,9 +22,11 @@ if __name__ == "__main__":
     main_window.configure(background="black")
 
     main_frame = Frame(main_window, bg="black")
+    # noinspection PyTypeChecker
     main_frame.pack(fill=BOTH, expand=YES)
 
     canvas = Canvas(main_frame, bg="black")
+    # noinspection PyTypeChecker
     canvas.pack(side=LEFT, fill=BOTH, expand=YES)
     canvas.bind("<Configure>", lambda event: update_display_image(state))
     canvas.focus_set()

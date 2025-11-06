@@ -14,10 +14,14 @@ from other.constants import ADJUSTMENT_DEFAULT_VALUES
 
 def create_main_menu(state: State, menu_bar):
     def new_file():
+        state.original_image = None
+        state.cv_image_display = None
         state.cv_image_full = None
         state.current_image_tk = None
         state.current_file_path = None
-        state.canvas.delete("all")
+        state.canvas.delete("background_image")
+        del state.background_image_id
+        state.preview_brush_mask = None
         messagebox.showinfo("New File", "Started a new workspace.")
 
     def open_file():
