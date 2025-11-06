@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import colorchooser, simpledialog
+from tkinter import simpledialog
 import cv2
 import numpy as np
 
@@ -59,11 +59,6 @@ def create_tools_menu(state: State, menu_bar):
 
         state.pan_start = (event.x, event.y)
         update_display_image(state)
-
-    # Allow pan with Shift + Left Mouse (for laptop users)
-    def shift_pan(event):
-        if event.state & 0x0001:
-            do_pan(event)
 
     # -------------------- Eyedropper Tool --------------------
     def pick_color_eyedropper():
@@ -290,4 +285,5 @@ def create_tools_menu(state: State, menu_bar):
     state.canvas.bind("<MouseWheel>", lambda e: zoom(step=0.25 if e.delta > 0 else -0.25, event=e))
     state.canvas.bind("<ButtonPress-2>", start_pan)
     state.canvas.bind("<B2-Motion>", do_pan)
-    state.canvas.bind("<Shift-B1-Motion>", shift_pan)
+    state.canvas.bind("<Shift-ButtonPress-1>", start_pan)
+    state.canvas.bind("<Shift-B1-Motion>", do_pan)

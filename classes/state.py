@@ -26,6 +26,7 @@ class State:
 
         self.brush_size = 5
         self.brush_color = (255, 0, 0)          # Color in rgb format
+        self.brush_pattern = None
 
         self.clipboard_image = None
 
