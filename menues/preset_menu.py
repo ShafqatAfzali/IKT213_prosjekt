@@ -25,7 +25,7 @@ BUILTIN_PRESETS = {
         "grayscale": False,
     },
     "bw": {
-        "contrast": 1.1,
+        "contrast": 0.5,
         "brightness": 0,
         "saturation": 0.0,
         "white_balance": 0,
@@ -102,9 +102,12 @@ def create_preset_menu(state: State, adjustment_panel, sliders, toggle_buttons):
     preset_var.set("Select preset")
 
     preset_menu = OptionMenu(adjustment_panel, preset_var, "")
+    # noinspection PyTypeChecker
     preset_menu.pack(fill=BOTH, pady=5)
 
+    # noinspection PyTypeChecker
     Button(adjustment_panel, text="Apply Preset", command=apply_preset).pack(fill=BOTH, pady=5)
+    # noinspection PyTypeChecker
     Button(adjustment_panel, text="Save Preset", command=save_current_preset).pack(fill=BOTH, pady=5)
 
     refresh_presets()

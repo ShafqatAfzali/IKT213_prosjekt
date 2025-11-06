@@ -129,7 +129,7 @@ def create_main_menu(state: State, menu_bar):
             key = operation[1][1]
             prev_value = None
             for op in reversed(state.operations):
-                if op[0].__name__ == func_name:
+                if op[0].__name__ == func_name and op[1][1] == key:
                     prev_value = op[1][0]
                     break
 
