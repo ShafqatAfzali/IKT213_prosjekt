@@ -83,7 +83,9 @@ def create_adjustment_menu(state: State, menu_bar):
         contrast_slider = add_slider("Contrast", "contrast", 0.5, 2.0, 0.1)
         saturation_slider = add_slider("Saturation", "saturation", 0.0, 2.0, 0.1)
         exposure_slider = add_slider("Exposure", "exposure", 0.5, 2.0, 0.1)
-        white_balance_slider = add_slider("White balance", "white_balance", -100, 100, 1)
+        white_balance_slider = add_slider("b_gain", "b_gain", 0.5, 2.5, 0.1)
+        white_balance_slider = add_slider("g_gain", "g_gain", 0.5, 2.5, 0.1)
+        white_balance_slider = add_slider("r_gain", "r_gain", 0.5, 2.5, 0.1)
         tone_curve_strength_slider = add_slider("Tone curve strength", "tone_curve_strength", -1.0, 1.0, 0.01)
         vignette_strength_slider = add_slider("Vignette strength", "vignette_strength", 0.0, 1.0, 0.01)
 

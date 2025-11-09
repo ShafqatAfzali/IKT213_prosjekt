@@ -13,17 +13,14 @@ def adjust_saturation(image, value):
 def adjust_exposure(image, value):
     return np.clip(image.astype(np.float32) * value, 0, 255).astype(np.uint8)
 
-def set_white_balance_temperature(image, temp):
-    r_gain = 1.0 + (temp / 200)
-    b_gain = 1.0 - (temp / 200)
-    return adjust_white_balance(image, r_gain=r_gain, b_gain=b_gain)
-
-def adjust_white_balance(image, r_gain=1.0, g_gain=1.0, b_gain=1.0):
+def set_white_balance_temperature(image, gains):
+    r_gain, g_gain, b_gain = gains
     balanced = image.astype(np.float32)
-    balanced[...,0] *= b_gain
-    balanced[...,1] *= g_gain
-    balanced[...,2] *= r_gain
-    return np.clip(balanced, 0, 255).astype(np.uint8)
+    balanced[..., 0] *= r_gain
+    balanced[..., 1] *= g_gain
+    balanced[..., 2] *= b_gain
+    balanced = np.clip(balanced / np.mean(gains), 0, 255).astype(np.uint8)
+    return balanced
 
 def apply_grayscale(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -56,7 +53,9 @@ def adjustment(state: State, image):
 
     image = adjust_saturation(image, vals.get("saturation", 1.0))
     image = adjust_exposure(image, vals.get("exposure", 1.0))
-    image = set_white_balance_temperature(image, vals.get("white_balance", 0))
+
+    gains = [vals.get("b_gain", 1), vals.get("g_gain", 1), vals.get("r_gain", 1)]
+    image = set_white_balance_temperature(image, gains)
 
     if vals.get("grayscale", False):
         image = apply_grayscale(image)

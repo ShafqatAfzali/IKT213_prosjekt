@@ -1,6 +1,7 @@
 import sys
 import os
 
+from menues.AI_white_exposure_menu import create_ai_white_exposure_menu
 from menues.adjustment_menu import create_adjustment_menu
 from menues.test_menu import create_test_menu
 
@@ -46,6 +47,7 @@ if __name__ == "__main__":
     create_colors_menu(state, menu_bar)
     create_adjustment_menu(state, menu_bar)
     create_test_menu(state, menu_bar)
+    create_ai_white_exposure_menu(state, menu_bar)
     main_window.config(menu=menu_bar)
 
     main_window.mainloop()
