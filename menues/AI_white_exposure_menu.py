@@ -23,6 +23,7 @@ def create_ai_white_exposure_menu(state: State, menu_bar):
         resized_image = cv2.resize(state.cv_image_full, (656, 656))
         rgb_image = cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB)
         pil_img = Image.fromarray(rgb_image)
+        # TODO: Picture is saved in 656 and maybe to "dull" colors
         out_awb = deep_wb(pil_img, task="awb", net_awb=net_awb, device=device, s=656)
         result_awb = utls.to_image(out_awb)
         result_awb.save('AAAAAAAAAAAAAAAAAA_AWB.png')
