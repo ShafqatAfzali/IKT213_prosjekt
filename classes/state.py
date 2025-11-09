@@ -7,6 +7,9 @@ class State:
         self.main_frame = None
         self.canvas = None
 
+        #Active tool
+        self.active_tool = None
+
         # Image references
         self.current_file_path = None
         self.original_image = None              # CV2 original image, don't change unless loading an image
@@ -37,7 +40,6 @@ class State:
         self.min_zoom = 0.25
         self.max_zoom = 8.0
         self.pan_start = None
-
         self.cropping = False
         self.crop_metadata = None  # dict with {'x0': ..., 'y0': ..., 'x1': ..., 'y1': ...}
 

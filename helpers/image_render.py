@@ -41,10 +41,13 @@ def update_display_image(state: State, new_image=False):
     if state.cv_image_full is None:
         return
 
-    if not new_image:
-        image = render_pipeline(state)
+    if state.active_tool in ["brush", "gradient"]:
+        image = state.cv_image_full
     else:
-        image = state.original_image.copy()
+        if not new_image:
+            image = render_pipeline(state)
+        else:
+            image = state.original_image.copy()
 
     c_width, c_height = state.canvas.winfo_width(), state.canvas.winfo_height()
     h, w, _ = image.shape
@@ -74,10 +77,9 @@ def update_display_image(state: State, new_image=False):
         )
         state.canvas.tag_lower("background_image_id")
 
-
     if len(state.shape_points) >= 2 and state.shape_ids:
         disp_cords = full_image_cords_to_canvas_cords(state, state.shape_points)
         disp_cords.append(disp_cords[0])
 
         for i, shape_id in enumerate(state.shape_ids):
-            state.canvas.coords(shape_id, disp_cords[i], disp_cords[i+1])
+            state.canvas.coords(shape_id, disp_cords[i], disp_cords[i + 1])
