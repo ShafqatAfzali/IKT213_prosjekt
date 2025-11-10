@@ -9,8 +9,13 @@ A Python photo editing application using Tkinter.
   - numpy
   - Pillow
   - opencv-python
+  - rawpy
+  - torch
+  - torchvision
+  - matplotlib
+  - scikit-learn
 
-> Note: This application has only been tested on Windows 10.
+> Note: This application has only been tested on Windows 11.
 
 ## Installation
 
@@ -82,6 +87,15 @@ python main.py
 - Use Tools → Paint Brushes for freehand edits
 - Undo/Redo: File → Undo / Redo or Ctrl+Z / Ctrl+Y
 - Colors: adjust brush size and color via Brush Size and Choose Color
+
+**Gradient**
+- Local → Gradient
+  - Hold left-click and across image in the wanted direction
+    - Example drag Left to Right, left side gets darker and right side brighter
+
+**Adjust brightness, contrast etc**
+- Adjustments
+  - Drag sliders or click buttons
 
 **Save your work**
 - File → Save overwrites the current file

@@ -2,3 +2,7 @@ numpy
 Pillow
 opencv-python
 rawpy
+torch
+torchvision
+matplotlib
+scikit-learn
