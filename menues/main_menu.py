@@ -66,6 +66,7 @@ def create_main_menu(state: State, menu_bar):
             load_metadata(file_path)
             state.operations.clear()
             state.redo_stack.clear()
+            state.adjustment_values = ADJUSTMENT_DEFAULT_VALUES.copy()
             update_display_image(state, new_image=True)
 
     def save_file():
@@ -136,10 +137,8 @@ def create_main_menu(state: State, menu_bar):
                 if op[0].__name__ == func_name and op[1][1] == key:
                     prev_value = op[1][0]
                     break
-
             if prev_value is None:
                 prev_value = ADJUSTMENT_DEFAULT_VALUES[key]
-
             state.adjustment_values[key] = prev_value
         elif func_name == "set_preset":
             prev_values = None

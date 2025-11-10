@@ -17,4 +17,3 @@ def add_menu_command_with_hotkey(state: State, menu, label, command, hotkey=None
     if hotkey:
         tk_hotkey = f"<{hotkey.replace('+', '-')}>"
         state.canvas.bind_all(tk_hotkey, lambda _: command())
-

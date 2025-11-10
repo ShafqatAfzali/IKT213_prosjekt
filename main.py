@@ -51,5 +51,4 @@ if __name__ == "__main__":
     create_local_menu(state, menu_bar)
     create_ai_white_exposure_menu(state, menu_bar)
     main_window.config(menu=menu_bar)
-    create_test_menu(state, menu_bar)
     main_window.mainloop()
