@@ -1,4 +1,4 @@
-from tkinter import Frame, Label, Scale, BOTH, RIGHT, HORIZONTAL, IntVar, Checkbutton
+from tkinter import Frame, Label, Scale, BOTH, RIGHT, HORIZONTAL, IntVar, Checkbutton, Scrollbar, Y, Canvas
 from classes.state import State
 from helpers.image_render import update_display_image
 from menues.preset_menu import create_preset_menu
@@ -16,8 +16,31 @@ def create_adjustment_menu(state: State, menu_bar):
         adjustment_panel = Frame(state.main_frame, bg="#222", width=panel_width)
         # noinspection PyTypeChecker
         adjustment_panel.pack(side=RIGHT, fill=BOTH)
-
         state.adjustment_panel = adjustment_panel
+
+        canvas_inside_adjustment_panel = Canvas(adjustment_panel, bg="#222", width=panel_width, highlightthickness=0)
+        canvas_inside_adjustment_panel.pack(side="left", fill=Y)
+
+        scrollbar = Scrollbar(adjustment_panel, orient="vertical", command=canvas_inside_adjustment_panel.yview)
+        scrollbar.pack(side="right", fill=Y)
+        canvas_inside_adjustment_panel.configure(yscrollcommand=scrollbar.set)
+
+        inner_frame = Frame(canvas_inside_adjustment_panel, bg="#222")
+        window_id = canvas_inside_adjustment_panel.create_window((0, 0), window=inner_frame, anchor="nw")
+
+        def resize_inner_frame(event):
+            canvas_inside_adjustment_panel.itemconfig(window_id, width=event.width)
+
+        canvas_inside_adjustment_panel.bind("<Configure>", resize_inner_frame)
+
+        def on_configure(event):
+            canvas_inside_adjustment_panel.configure(scrollregion=canvas_inside_adjustment_panel.bbox("all"))
+        inner_frame.bind("<Configure>", on_configure)
+
+        def _on_mousewheel(event):
+            canvas_inside_adjustment_panel.yview_scroll(-int(event.delta / 120), "units")
+
+        canvas_inside_adjustment_panel.bind_all("<MouseWheel>", _on_mousewheel)
 
         def add_slider(label, key, min_val, max_val, resolution=1.0):
             def start_preview(key):
@@ -41,10 +64,10 @@ def create_adjustment_menu(state: State, menu_bar):
                 update_display_image(state)
 
 
-            Label(adjustment_panel, text=label, bg="#2b2b2b", fg="white").pack()
+            Label(inner_frame, text=label, bg="#2b2b2b", fg="white").pack()
             # noinspection PyTypeChecker
             slider = Scale(
-                adjustment_panel,
+                inner_frame,
                 from_=min_val,
                 to=max_val,
                 resolution=resolution,
@@ -66,7 +89,7 @@ def create_adjustment_menu(state: State, menu_bar):
                 update_display_image(state)
 
             toggle = Checkbutton(
-                adjustment_panel,
+                inner_frame,
                 text=label,
                 variable=var,
                 command=on_toggle,
@@ -79,21 +102,25 @@ def create_adjustment_menu(state: State, menu_bar):
             return key, var
 
         # Add sliders
-        brightness_slider = add_slider("Brightness", "brightness", -100, 100, 1)
-        contrast_slider = add_slider("Contrast", "contrast", 0.5, 2.0, 0.1)
-        saturation_slider = add_slider("Saturation", "saturation", 0.0, 2.0, 0.1)
-        exposure_slider = add_slider("Exposure", "exposure", 0.5, 2.0, 0.1)
-        white_balance_slider = add_slider("White balance", "white_balance", -100, 100, 1)
-        tone_curve_strength_slider = add_slider("Tone curve strength", "tone_curve_strength", -1.0, 1.0, 0.01)
-        vignette_strength_slider = add_slider("Vignette strength", "vignette_strength", 0.0, 1.0, 0.01)
+        sliders = dict([
+            add_slider("Brightness", "brightness", -100, 100, 1),
+            add_slider("Contrast", "contrast", 0.5, 2.0, 0.1),
+            add_slider("Saturation", "saturation", 0.0, 2.0, 0.1),
+            add_slider("Exposure", "exposure", 0.5, 2.0, 0.1),
+            add_slider("r_gain", "r_gain", 0.5, 2.5, 0.01),
+            add_slider("b_gain", "b_gain", 0.5, 2.5, 0.01),
+            add_slider("g_gain", "g_gain", 0.5, 2.5, 0.01),
+            add_slider("Tone curve strength", "tone_curve_strength", -1.0, 1.0, 0.01),
+            add_slider("Vignette strength", "vignette_strength", 0.0, 1.0, 0.01),
+        ])
 
         # Add toggle buttons
-        grayscale_toggle = add_toggle("Grayscale", "grayscale")
+        toggle_buttons = dict([
+        add_toggle("Grayscale", "grayscale"),
+        ])
 
-        sliders = dict([brightness_slider, contrast_slider, saturation_slider, exposure_slider, white_balance_slider,
-                       tone_curve_strength_slider,vignette_strength_slider])
-        toggle_buttons = dict([grayscale_toggle])
 
-        create_preset_menu(state, adjustment_panel, sliders, toggle_buttons)
+
+        create_preset_menu(state, inner_frame, sliders, toggle_buttons)
 
     menu_bar.add_command(label="Adjustment", command=toggle_adjustment_panel)
