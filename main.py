@@ -15,6 +15,8 @@ from menues.main_menu import create_main_menu
 from menues.image_menu import create_image_menu
 from menues.colors_menu import create_colors_menu
 from menues.shapes_menu import create_shapes_menu
+from menues.local_menu import create_local_menu
+
 
 if __name__ == "__main__":
     main_window = Tk()
@@ -46,8 +48,8 @@ if __name__ == "__main__":
     create_shapes_menu(state, menu_bar)
     create_colors_menu(state, menu_bar)
     create_adjustment_menu(state, menu_bar)
-    create_test_menu(state, menu_bar)
+    create_local_menu(state, menu_bar)
     create_ai_white_exposure_menu(state, menu_bar)
     main_window.config(menu=menu_bar)
-
+    create_test_menu(state, menu_bar)
     main_window.mainloop()
