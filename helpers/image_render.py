@@ -41,13 +41,10 @@ def update_display_image(state: State, new_image=False):
     if state.cv_image_full is None:
         return
 
-    if state.active_tool in ["brush", "gradient"]:
-        image = state.cv_image_full
+    if not new_image:
+        image = render_pipeline(state)
     else:
-        if not new_image:
-            image = render_pipeline(state)
-        else:
-            image = state.original_image.copy()
+        image = state.original_image.copy()
 
     c_width, c_height = state.canvas.winfo_width(), state.canvas.winfo_height()
     h, w, _ = image.shape

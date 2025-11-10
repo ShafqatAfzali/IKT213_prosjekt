@@ -130,6 +130,7 @@ def create_main_menu(state: State, menu_bar):
 
         if func_name == "apply_crop":
             state.crop_metadata = None
+
         elif func_name == "set_adjustment_value":
             key = operation[1][1]
             prev_value = None
@@ -140,17 +141,27 @@ def create_main_menu(state: State, menu_bar):
             if prev_value is None:
                 prev_value = ADJUSTMENT_DEFAULT_VALUES[key]
             state.adjustment_values[key] = prev_value
+
         elif func_name == "set_preset":
             prev_values = None
             for op in reversed(state.operations):
                 if op[0].__name__ == func_name:
                     prev_values = op[1][0]
                     break
-
             if prev_values is None:
                 prev_values = ADJUSTMENT_DEFAULT_VALUES
             state.adjustment_values = prev_values.copy()
 
+        elif func_name == "set_auto_adjust_gains":
+            prev_bgr = [1,1,1]
+            for op in reversed(state.operations):
+                if op[0].__name__ == func_name:
+                    prev_bgr = op[1][3]
+                    break
+            b,g,r = prev_bgr
+            state.adjustment_values["b_gain"] = b
+            state.adjustment_values["g_gain"] = g
+            state.adjustment_values["r_gain"] = r
         if op_idx in state.cached_images:
             del state.cached_images[op_idx]
 

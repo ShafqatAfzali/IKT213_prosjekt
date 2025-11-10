@@ -43,16 +43,17 @@ def create_ai_white_exposure_menu(state: State, menu_bar):
         return rgb_gain.tolist()
 
 
-    def set_auto_adjust_gains(image, b,g,r):
+    def set_auto_adjust_gains(image, b, g, r, prev_bgr):
         state.adjustment_values["b_gain"] = b
         state.adjustment_values["g_gain"] = g
         state.adjustment_values["r_gain"] = r
         return image
 
     def apply_auto():
+        prev_bgr = [state.adjustment_values["b_gain"], state.adjustment_values["g_gain"], state.adjustment_values["r_gain"]]
         [r,g,b] = predict_gains()
 
-        state.operations.append([set_auto_adjust_gains, [], {"b": b, "g": g, "r": r}])
+        state.operations.append([set_auto_adjust_gains, [], {"b": b, "g": g, "r": r, "prev_bgr": prev_bgr}])
         state.redo_stack.clear()
         update_display_image(state)
 

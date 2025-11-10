@@ -3,7 +3,6 @@ import os
 
 from menues.AI_white_exposure_menu import create_ai_white_exposure_menu
 from menues.adjustment_menu import create_adjustment_menu
-from menues.test_menu import create_test_menu
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

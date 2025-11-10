@@ -185,7 +185,7 @@ def create_image_menu(state: State, menu_bar):
 
     def begin_crop_drag(event):
         x, y = event.x, event.y
-        pts = state.shape_points
+        pts = full_image_cords_to_canvas_cords(state, state.shape_points)
         d0 = (x - pts[0][0]) ** 2 + (y - pts[0][1]) ** 2
         d1 = (x - pts[1][0]) ** 2 + (y - pts[1][1]) ** 2
         state.active_corner = 0 if d0 < d1 else 1
